@@ -42,12 +42,11 @@ detect_mas_apps() {
 
 # -----------------------------------------------------------------------------
 # MANUAL APPS
-# Apps in /Applications not managed by brew cask or mas
-# We build two exclusion lists then filter — no fuzzy matching, no loops
+# Everything in /Applications minus obvious system apps
+# Deduplication against brew/mas happens in menu.sh — not here
 # -----------------------------------------------------------------------------
 detect_manual_apps() {
-  # System apps to always skip
-  local -a system_apps=(
+  local system_apps=(
     "safari" "finder" "mail" "calendar" "reminders" "notes" "maps"
     "photos" "facetime" "messages" "music" "podcasts" "tv" "books"
     "news" "stocks" "weather" "calculator" "dictionary" "automator"
@@ -59,26 +58,6 @@ detect_manual_apps() {
     "python 3.12" "python 3.13" "smart switch"
   )
 
-  # Build exclusion list from mas — just app names, lowercased
-  local mas_names=""
-  if command_exists mas; then
-    mas_names=$(mas list 2>/dev/null |
-      awk '{$1=""; print $0}' |
-      sed 's/^ //' |
-      sed 's/ (.*//' |
-      tr '[:upper:]' '[:lower:]')
-  fi
-
-  # Build exclusion list from brew casks
-  # Convert cask names to app-like names: brave-browser → brave browser
-  local cask_names=""
-  if command_exists brew; then
-    cask_names=$(brew list --cask 2>/dev/null |
-      sed 's/-/ /g' |
-      tr '[:upper:]' '[:lower:]')
-  fi
-
-  # Scan /Applications — use /bin/ls to bypass any aliases
   /bin/ls -1 /Applications 2>/dev/null |
     sed 's|[/@*]$||' |
     grep '\.app$' |
@@ -87,28 +66,11 @@ detect_manual_apps() {
     while IFS= read -r app; do
       local lower
       lower=$(echo "$app" | tr '[:upper:]' '[:lower:]')
-
-      # Check system apps
       local skip=0
       for s in "${system_apps[@]}"; do
-        if [[ "$lower" == "$s" ]]; then
-          skip=1
-          break
-        fi
+        [[ "$lower" == "$s" ]] && skip=1 && break
       done
       [[ $skip -eq 1 ]] && continue
-
-      # Check mas — exact match
-      if echo "$mas_names" | grep -qx "$lower" 2>/dev/null; then
-        continue
-      fi
-
-      # Check casks — compare lowercased app name against
-      # cask names with dashes replaced by spaces
-      if echo "$cask_names" | grep -qx "$lower" 2>/dev/null; then
-        continue
-      fi
-
       echo "$app"
     done
 }
