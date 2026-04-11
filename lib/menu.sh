@@ -7,18 +7,14 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/utils.sh"
 
 # -----------------------------------------------------------------------------
 # MENU SELECT
-# Generic function — takes a header and a list of items, shows checkboxes
-# with everything selected by default, returns what the user picked
-#
-# Usage: menu_select "Pick your tools" "git" "node" "python"
-# Returns: selected items one per line
+# Generic checkbox — all items selected by default
+# Only selected items go to stdout — log messages go to stderr
 # -----------------------------------------------------------------------------
 menu_select() {
   local header="$1"
   shift
   local items=("$@")
 
-  # --selected="*" means all items start selected
   printf '%s\n' "${items[@]}" | gum choose \
     --no-limit \
     --selected="*" \
@@ -28,8 +24,6 @@ menu_select() {
 
 # -----------------------------------------------------------------------------
 # MENU CONFIRM
-# Simple yes/no confirmation using gum
-# Usage: menu_confirm "Are you sure?" && do_something
 # -----------------------------------------------------------------------------
 menu_confirm() {
   local prompt="${1:-Are you sure?}"
@@ -38,8 +32,6 @@ menu_confirm() {
 
 # -----------------------------------------------------------------------------
 # MENU INPUT
-# Single line text input
-# Usage: name=$(menu_input "What is your name?")
 # -----------------------------------------------------------------------------
 menu_input() {
   local prompt="${1:-Enter value:}"
@@ -49,8 +41,6 @@ menu_input() {
 
 # -----------------------------------------------------------------------------
 # MENU BREWS
-# Shows all detected brew formulae as checkboxes
-# Returns selected ones
 # -----------------------------------------------------------------------------
 menu_brews() {
   local brews=()
@@ -59,12 +49,12 @@ menu_brews() {
   done < <(detect_brews)
 
   if [[ ${#brews[@]} -eq 0 ]]; then
-    log_warn "No Homebrew formulae found"
+    log_warn "No Homebrew formulae found" >&2
     return
   fi
 
-  log_step "Homebrew formulae"
-  log_dim "Space to deselect, enter to confirm"
+  log_step "Homebrew formulae" >&2
+  log_dim "Space to deselect, enter to confirm" >&2
   menu_select "Select formulae to save:" "${brews[@]}"
 }
 
@@ -78,12 +68,12 @@ menu_casks() {
   done < <(detect_casks)
 
   if [[ ${#casks[@]} -eq 0 ]]; then
-    log_warn "No casks found"
+    log_warn "No casks found" >&2
     return
   fi
 
-  log_step "Homebrew casks"
-  log_dim "Space to deselect, enter to confirm"
+  log_step "Homebrew casks" >&2
+  log_dim "Space to deselect, enter to confirm" >&2
   menu_select "Select casks to save:" "${casks[@]}"
 }
 
@@ -92,24 +82,25 @@ menu_casks() {
 # -----------------------------------------------------------------------------
 menu_mas_apps() {
   if ! command_exists mas; then
-    log_dim "mas not installed — skipping App Store apps"
+    log_dim "mas not installed — skipping App Store apps" >&2
     return
   fi
 
   local apps=()
   while IFS= read -r line; do
     [[ -n "$line" ]] && apps+=("$line")
-  done < <(mas list 2>/dev/null | awk '{$1=""; print $0}' |
+  done < <(mas list 2>/dev/null |
+    awk '{$1=""; print $0}' |
     sed 's/^ //' |
     sed 's/ (.*//')
 
   if [[ ${#apps[@]} -eq 0 ]]; then
-    log_warn "No App Store apps found"
+    log_warn "No App Store apps found" >&2
     return
   fi
 
-  log_step "App Store apps"
-  log_dim "Space to deselect, enter to confirm"
+  log_step "App Store apps" >&2
+  log_dim "Space to deselect, enter to confirm" >&2
   menu_select "Select App Store apps to save:" "${apps[@]}"
 }
 
@@ -123,13 +114,13 @@ menu_manual_apps() {
   done < <(detect_manual_apps)
 
   if [[ ${#apps[@]} -eq 0 ]]; then
-    log_dim "No manual apps found"
+    log_dim "No manual apps found" >&2
     return
   fi
 
-  log_step "Manual apps"
-  log_dim "These apps have no automated install — a download URL will be saved"
-  log_dim "Space to deselect, enter to confirm"
+  log_step "Manual apps" >&2
+  log_dim "These apps have no automated install — a download URL will be saved" >&2
+  log_dim "Space to deselect, enter to confirm" >&2
   menu_select "Select manual apps to save:" "${apps[@]}"
 }
 
@@ -143,11 +134,11 @@ menu_dotfiles() {
   done < <(detect_dotfiles)
 
   if [[ ${#files[@]} -eq 0 ]]; then
-    log_warn "No dotfiles found"
+    log_warn "No dotfiles found" >&2
     return
   fi
 
-  log_step "Dotfiles"
-  log_dim "Space to deselect, enter to confirm"
+  log_step "Dotfiles" >&2
+  log_dim "Space to deselect, enter to confirm" >&2
   menu_select "Select dotfiles to back up:" "${files[@]}"
 }
