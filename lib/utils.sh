@@ -25,8 +25,6 @@ else
   BLUE="" MAGENTA="" CYAN="" DIM=""
 fi
 
-export RESET BOLD RED GREEN YELLOW BLUE MAGENTA CYAN DIM
-
 # -----------------------------------------------------------------------------
 # LOGGING
 # Every function writes to stdout EXCEPT log_error and log_warn
@@ -125,4 +123,12 @@ export SHELVE_CONFIG="${SHELVE_DIR}/shelve.json"
 
 ensure_shelve_dir() {
   [[ -d "$SHELVE_DIR" ]] || mkdir -p "$SHELVE_DIR"
+}
+
+# -----------------------------------------------------------------------------
+# GUM WRAPPER
+# gum 0.17.0 conflicts with our BOLD variable — unset it before every call
+# -----------------------------------------------------------------------------
+gum() {
+  env -u BOLD command gum "$@"
 }
