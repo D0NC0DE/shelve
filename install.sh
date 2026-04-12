@@ -2,7 +2,7 @@
 # =============================================================================
 # install.sh — one-liner bootstrap for shelve
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/D0NC0DE/shelve/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/D0NC0DE/shelve/refs/heads/main/install.sh | bash
 # =============================================================================
 
 set -eo pipefail
@@ -26,9 +26,9 @@ info()    { printf "${CYAN}•${RESET} %s\n" "$*"; }
 success() { printf "${GREEN}✓${RESET} %s\n" "$*"; }
 warn()    { printf "${YELLOW}⚠${RESET} %s\n" "$*" >&2; }
 error()   { printf "${RED}✗${RESET} ${BOLD}%s${RESET}\n" "$*" >&2; }
-ask()     {
+ask() {
   printf "${YELLOW}?${RESET} %s [y/N] " "$*"
-  local r; read -r r
+  local r; read -r r </dev/tty
   [[ "$r" =~ ^[Yy]$ ]]
 }
 
