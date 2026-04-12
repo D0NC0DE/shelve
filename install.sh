@@ -2,7 +2,7 @@
 # =============================================================================
 # install.sh — one-liner bootstrap for shelve
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/D0NC0DE/shelve/refs/heads/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/D0NC0DE/shelve/refs/heads/main/install.sh -o install.sh && bash install.sh
 # =============================================================================
 
 set -eo pipefail
@@ -61,7 +61,6 @@ success "macOS detected ($(sw_vers -productVersion))"
 if ! xcode-select -p &>/dev/null; then
   info "Xcode CLI tools not found — installing..."
   xcode-select --install 2>/dev/null || true
-  # The installer is async — wait for it
   until xcode-select -p &>/dev/null 2>&1; do
     sleep 5
   done
@@ -77,13 +76,12 @@ if ! command -v brew &>/dev/null; then
   if ask "Homebrew is not installed. Install it now?"; then
     info "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    # Add brew to PATH for Apple Silicon
     if [[ "$(uname -m)" == "arm64" ]]; then
       eval "$(/opt/homebrew/bin/brew shellenv)"
     fi
     success "Homebrew installed"
   else
-    error "Homebrew is required by shelve. Exiting."
+    error "Homebrew is required. Exiting."
     exit 1
   fi
 else
@@ -119,27 +117,34 @@ chmod +x "${SHELVE_INSTALL_DIR}/shelve"
 
 # -----------------------------------------------------------------------------
 # ADD TO PATH
+# Detect which shell the user is running, write to the correct rc file.
+# touch creates the file if it doesn't exist yet.
 # -----------------------------------------------------------------------------
 SHELVE_BIN="${SHELVE_INSTALL_DIR}"
 PATH_LINE="export PATH=\"\$PATH:${SHELVE_BIN}\""
 
-# Add to ~/.zshrc if not already present
-if [[ -f "${HOME}/.zshrc" ]] && ! grep -q "shelve" "${HOME}/.zshrc"; then
-  echo "" >> "${HOME}/.zshrc"
-  echo "# shelve — shelf your setup" >> "${HOME}/.zshrc"
-  echo "$PATH_LINE" >> "${HOME}/.zshrc"
-  success "Added shelve to ~/.zshrc"
+SHELL_NAME=$(basename "$SHELL")
+
+if [[ "$SHELL_NAME" == "zsh" ]]; then
+  RC_FILE="${HOME}/.zshrc"
+elif [[ "$SHELL_NAME" == "bash" ]]; then
+  RC_FILE="${HOME}/.bashrc"
+else
+  warn "Unknown shell: $SHELL_NAME — adding to ~/.profile as fallback"
+  RC_FILE="${HOME}/.profile"
 fi
 
-# Add to ~/.bashrc if it exists and shelve isn't already there
-if [[ -f "${HOME}/.bashrc" ]] && ! grep -q "shelve" "${HOME}/.bashrc"; then
-  echo "" >> "${HOME}/.bashrc"
-  echo "# shelve — shelf your setup" >> "${HOME}/.bashrc"
-  echo "$PATH_LINE" >> "${HOME}/.bashrc"
-  success "Added shelve to ~/.bashrc"
+touch "$RC_FILE"
+
+if grep -q "shelve" "$RC_FILE"; then
+  success "shelve already in ${RC_FILE}"
+else
+  printf "\n# shelve — shelf your setup\n" >> "$RC_FILE"
+  printf "%s\n" "$PATH_LINE" >> "$RC_FILE"
+  success "Added shelve to ${RC_FILE}"
 fi
 
-# Also export for the current session
+# Export for current session so shelve works immediately
 export PATH="$PATH:${SHELVE_BIN}"
 
 # -----------------------------------------------------------------------------
@@ -147,7 +152,7 @@ export PATH="$PATH:${SHELVE_BIN}"
 # -----------------------------------------------------------------------------
 printf "\n"
 printf "${GREEN}${BOLD}  shelve is installed!${RESET}\n\n"
-printf "  Restart your terminal (or run ${CYAN}source ~/.zshrc${RESET}), then:\n\n"
+printf "  Run ${CYAN}source %s${RESET} or restart your terminal, then:\n\n" "$RC_FILE"
 printf "  ${BOLD}shelve save${RESET}      — back up your current Mac setup\n"
 printf "  ${BOLD}shelve restore${RESET}   — restore from a saved config\n"
 printf "  ${BOLD}shelve fresh${RESET}     — set up a brand new Mac from scratch\n"
