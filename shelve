@@ -1,29 +1,17 @@
 #!/usr/bin/env bash
 # =============================================================================
 # shelve — main entry point
-# Usage: shelve <command>
-#   shelve fresh      spin up a brand new Mac from zero
-#   shelve save       capture your current Mac setup
-#   shelve restore    restore from a saved config
-#   shelve help       show this help
 # =============================================================================
 
 set -eo pipefail
-# set -e  → exit immediately if any command fails
-# set -u  → treat unset variables as errors
-# set -o pipefail → if any command in a pipe fails, the whole pipe fails
-# These three together make your script fail loudly instead of silently
 
 SHELVE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# BASH_SOURCE[0] is the path to THIS file
-# dirname strips the filename, leaving the directory
-# cd + pwd resolves any symlinks to give us the real absolute path
-# We need this so lib/ scripts can be found no matter where user runs shelve from
+SHELVE_VERSION="0.1.0"
 
 source "${SHELVE_ROOT}/lib/utils.sh"
 
 # -----------------------------------------------------------------------------
-# OS CHECK — Mac only
+# OS CHECK
 # -----------------------------------------------------------------------------
 if [[ "$(uname)" != "Darwin" ]]; then
   log_error "shelve only runs on macOS"
@@ -31,63 +19,79 @@ if [[ "$(uname)" != "Darwin" ]]; then
 fi
 
 # -----------------------------------------------------------------------------
-# PREREQUISITES CHECK
-# Check for the things shelve needs before doing anything else
+# PREREQUISITES
+# install.sh guarantees these exist — this catches manual clones
+# Skipped for help so the user can always get usage info
 # -----------------------------------------------------------------------------
 check_prerequisites() {
-  local missing=0
-
-  # Xcode CLI tools — needed by git, brew, and most compilers
   if ! xcode-select -p &>/dev/null; then
-    log_warn "Xcode CLI tools not installed"
-    log_info "Run: xcode-select --install"
-    missing=1
+    log_error "Xcode CLI tools not installed"
+    log_info "Run: xcode-select --install, then try again"
+    exit 1
   fi
 
-  # Homebrew — needed to install everything
   if ! command_exists brew; then
-    log_warn "Homebrew is not installed"
-    if shelve_ask "Install Homebrew now?"; then
-      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    else
-      log_error "Homebrew is required. Exiting."
-      exit 1
+    log_info "Installing Homebrew — you may be prompted for your password..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    if [[ "$(uname -m)" == "arm64" ]]; then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
     fi
+    log_success "Homebrew installed"
   fi
 
-  return $missing
+  if ! command_exists gum; then
+    log_error "gum is required but not installed"
+    log_info "Run: brew install gum"
+    exit 1
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# HELP
+# -----------------------------------------------------------------------------
+show_help() {
+  shelve_banner
+  divider
+  printf "\n"
+  printf "  ${BOLD}Usage:${RESET} shelve ${CYAN}<command>${RESET}\n\n"
+  printf "  ${CYAN}save${RESET}       capture your current Mac setup\n"
+  printf "  ${CYAN}restore${RESET}    restore from a saved config\n"
+  printf "  ${CYAN}fresh${RESET}      spin up a brand new Mac from zero\n"
+  printf "  ${CYAN}help${RESET}       show this help\n\n"
+  divider
+  printf "\n  ${DIM}v${SHELVE_VERSION}${RESET}\n\n"
 }
 
 # -----------------------------------------------------------------------------
 # COMMANDS
 # -----------------------------------------------------------------------------
-case "${1:-help}" in
-fresh)
-  check_prerequisites
-  source "${SHELVE_ROOT}/lib/fresh.sh"
-  cmd_fresh
-  ;;
+cmd="${1:-help}"
+
+[[ "$cmd" != "help" && "$cmd" != "--help" && "$cmd" != "-h" ]] && check_prerequisites
+
+case "$cmd" in
 save)
-  check_prerequisites
   source "${SHELVE_ROOT}/lib/save.sh"
   cmd_save
   ;;
 restore)
-  check_prerequisites
   source "${SHELVE_ROOT}/lib/restore.sh"
   cmd_restore
   ;;
+fresh)
+  source "${SHELVE_ROOT}/lib/fresh.sh"
+  cmd_fresh
+  ;;
 help | --help | -h)
-  shelve_banner
-  printf "  ${BOLD}Usage:${RESET} shelve <command>\n\n"
-  printf "  ${CYAN}fresh${RESET}      spin up a brand new Mac from zero\n"
-  printf "  ${CYAN}save${RESET}       capture your current Mac setup\n"
-  printf "  ${CYAN}restore${RESET}    restore from a saved config\n"
-  printf "  ${CYAN}help${RESET}       show this help\n\n"
+  show_help
   ;;
 *)
   log_error "Unknown command: ${1}"
-  printf "Run ${BOLD}shelve help${RESET} to see available commands\n"
+  printf "\n"
+  printf "  ${CYAN}save${RESET}       capture your current Mac setup\n"
+  printf "  ${CYAN}restore${RESET}    restore from a saved config\n"
+  printf "  ${CYAN}fresh${RESET}      spin up a brand new Mac from zero\n"
+  printf "  ${CYAN}help${RESET}       show this help\n\n"
   exit 1
   ;;
 esac
