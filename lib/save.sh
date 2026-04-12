@@ -27,9 +27,8 @@ array_to_json() {
 write_config() {
   local brews_json="$1"
   local casks_json="$2"
-  local mas_json="$3"
-  local manual_json="$4"
-  local dotfiles_json="$5"
+  local manual_json="$3"
+  local dotfiles_json="$4"
 
   local shell macos arch browser terminal editor cli_editor
   shell=$(basename "$SHELL")
@@ -62,7 +61,6 @@ write_config() {
   },
   "brews": $brews_json,
   "casks": $casks_json,
-  "mas": $mas_json,
   "manual_apps": $manual_json,
   "dotfiles": $dotfiles_json
 }
@@ -76,16 +74,6 @@ EOF
 # -----------------------------------------------------------------------------
 check_optional_tools() {
   log_step "Optional tools"
-
-  if ! command_exists mas; then
-    log_warn "mas not installed — App Store apps won't be captured"
-    if menu_confirm "Install mas now for better coverage?"; then
-      brew install mas
-      log_success "mas installed"
-    fi
-  else
-    log_success "mas installed"
-  fi
 
   if ! command_exists gh; then
     log_warn "gh not installed — GitHub push won't be automated"
@@ -113,7 +101,6 @@ cmd_save() {
 
   local selected_brews=()
   local selected_casks=()
-  local selected_mas=()
   local selected_manual=()
   local selected_dotfiles=()
 
@@ -126,10 +113,6 @@ cmd_save() {
   done < <(menu_casks)
 
   while IFS= read -r line; do
-    [[ -n "$line" ]] && selected_mas+=("$line")
-  done < <(menu_mas_apps)
-
-  while IFS= read -r line; do
     [[ -n "$line" ]] && selected_manual+=("$line")
   done < <(menu_manual_apps)
 
@@ -137,10 +120,9 @@ cmd_save() {
     [[ -n "$line" ]] && selected_dotfiles+=("$line")
   done < <(menu_dotfiles)
 
-  local brews_json casks_json mas_json manual_json dotfiles_json
+  local brews_json casks_json manual_json dotfiles_json
   brews_json=$(array_to_json "${selected_brews[@]}")
   casks_json=$(array_to_json "${selected_casks[@]}")
-  mas_json=$(array_to_json "${selected_mas[@]}")
   manual_json=$(array_to_json "${selected_manual[@]}")
   dotfiles_json=$(array_to_json "${selected_dotfiles[@]}")
 
@@ -148,14 +130,12 @@ cmd_save() {
   write_config \
     "$brews_json" \
     "$casks_json" \
-    "$mas_json" \
     "$manual_json" \
     "$dotfiles_json"
 
   log_step "Summary"
   log_success "${#selected_brews[@]} formulae saved"
   log_success "${#selected_casks[@]} casks saved"
-  log_success "${#selected_mas[@]} App Store apps saved"
   log_success "${#selected_manual[@]} manual apps saved"
   log_success "${#selected_dotfiles[@]} dotfiles saved"
 

@@ -78,33 +78,6 @@ menu_casks() {
 }
 
 # -----------------------------------------------------------------------------
-# MENU MAS APPS
-# -----------------------------------------------------------------------------
-menu_mas_apps() {
-  if ! command_exists mas; then
-    log_dim "mas not installed — skipping App Store apps" >&2
-    return
-  fi
-
-  local apps=()
-  while IFS= read -r line; do
-    [[ -n "$line" ]] && apps+=("$line")
-  done < <(mas list 2>/dev/null |
-    awk '{$1=""; print $0}' |
-    sed 's/^ //' |
-    sed 's/ (.*//')
-
-  if [[ ${#apps[@]} -eq 0 ]]; then
-    log_warn "No App Store apps found" >&2
-    return
-  fi
-
-  log_step "App Store apps" >&2
-  log_dim "Space to deselect, enter to confirm" >&2
-  menu_select "Select App Store apps to save:" "${apps[@]}"
-}
-
-# -----------------------------------------------------------------------------
 # MENU MANUAL APPS
 # -----------------------------------------------------------------------------
 menu_manual_apps() {

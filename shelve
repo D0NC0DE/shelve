@@ -8,7 +8,7 @@
 #   shelve help       show this help
 # =============================================================================
 
-set -euo pipefail
+set -eo pipefail
 # set -e  → exit immediately if any command fails
 # set -u  → treat unset variables as errors
 # set -o pipefail → if any command in a pipe fails, the whole pipe fails

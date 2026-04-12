@@ -101,6 +101,14 @@ app_installed() {
     [[ -d "${HOME}/Applications/${1}.app" ]]
 }
 
+brew_package_installed() {
+  brew list --formula 2>/dev/null | grep -q "^${1}$"
+}
+
+brew_cask_installed() {
+  brew list --cask 2>/dev/null | grep -q "^${1}$"
+}
+
 # -----------------------------------------------------------------------------
 # PROMPTS
 # -----------------------------------------------------------------------------
