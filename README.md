@@ -9,7 +9,7 @@ shelve is a macOS CLI tool that captures your developer environment — Homebrew
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/winnerolusola/shelve/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/D0NC0DE/shelve/main/install.sh | bash
 ```
 
 Restart your terminal, then run `shelve help`.

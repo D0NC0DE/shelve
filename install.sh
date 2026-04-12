@@ -2,12 +2,12 @@
 # =============================================================================
 # install.sh — one-liner bootstrap for shelve
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/winnerolusola/shelve/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/D0NC0DE/shelve/main/install.sh | bash
 # =============================================================================
 
 set -eo pipefail
 
-SHELVE_REPO="https://github.com/winnerolusola/shelve.git"
+SHELVE_REPO="https://github.com/D0NC0DE/shelve.git"
 SHELVE_INSTALL_DIR="${HOME}/.shelve/tool"
 
 # Colours — keep it minimal, no dependency on utils.sh yet
