@@ -34,17 +34,8 @@ ask() {
 }
 
 # -----------------------------------------------------------------------------
-# PURE BASH SPINNER
-# Used before gum is installed — runs a command in the background
-# and shows an animated spinner until it finishes
-#
-# Usage: spin "Installing gum..." brew install gum
-#
-# How it works:
-#   "$@" runs the command, & sends it to the background
-#   $! captures the background process PID
-#   kill -0 checks if the PID is still alive without killing it
-#   \r moves the cursor to the start of the line so frames overwrite each other
+# Runs a command in the background and shows an animated spinner until it finishes
+# Usage: spin "title" command args...
 # -----------------------------------------------------------------------------
 spin() {
   local title="$1"
@@ -62,7 +53,7 @@ spin() {
   done
 
   wait "$pid"
-  printf "\r"
+  printf "\r%-50s\r" " "
 }
 
 # -----------------------------------------------------------------------------
@@ -123,7 +114,6 @@ fi
 
 # -----------------------------------------------------------------------------
 # GUM
-# First use of the bash spinner — gum isn't available yet
 # -----------------------------------------------------------------------------
 if ! command -v gum &>/dev/null; then
   spin "Installing gum..." brew install gum
@@ -138,7 +128,6 @@ printf "\n"
 
 # -----------------------------------------------------------------------------
 # CLONE / UPDATE SHELVE
-# gum is guaranteed to exist from here on — switch to gum spin
 # bash -c wraps git so the redirection silences git, not gum
 # -----------------------------------------------------------------------------
 if [[ -d "$SHELVE_INSTALL_DIR" ]]; then
