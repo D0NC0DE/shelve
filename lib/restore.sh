@@ -159,6 +159,10 @@ install_brews() {
   local failed=()
 
   for pkg in "${selected_brews[@]}"; do
+    # Strip any invisible characters or whitespace that gum may attach
+    pkg=$(echo "$pkg" | tr -d '[:space:]')
+    [[ -z "$pkg" ]] && continue
+
     if brew_package_installed "$pkg"; then
       log_dim "$pkg already installed"
     else
@@ -173,9 +177,6 @@ install_brews() {
       fi
     fi
   done
-
-  for pkg in "${selected_brews[@]}"; do
-    echo "DEBUG pkg='${pkg}' len=${#pkg}"
 
   [[ ${#failed[@]} -gt 0 ]] && log_warn "Failed: ${failed[*]}"
 }

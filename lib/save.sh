@@ -70,6 +70,30 @@ EOF
 }
 
 # -----------------------------------------------------------------------------
+# BACKUP DOTFILES
+# Copies selected dotfiles into ~/.shelve/dotfiles/ so restore.sh can find them
+# Directories (e.g. ~/.config/nvim) are copied recursively with cp -r
+# -----------------------------------------------------------------------------
+backup_dotfiles() {
+  local files=("$@")
+  [[ ${#files[@]} -eq 0 ]] && return
+
+  local dotfiles_dir="${SHELVE_DIR}/dotfiles"
+  mkdir -p "$dotfiles_dir"
+
+  log_step "Backing up dotfiles"
+  for dotfile in "${files[@]}"; do
+    local src="${dotfile/#\~/$HOME}"
+    if [[ ! -e "$src" ]]; then
+      log_warn "Not found, skipping: $dotfile"
+      continue
+    fi
+    cp -r "$src" "$dotfiles_dir/"
+    log_success "Backed up $dotfile"
+  done
+}
+
+# -----------------------------------------------------------------------------
 # CHECK OPTIONAL TOOLS
 # -----------------------------------------------------------------------------
 check_optional_tools() {
@@ -125,6 +149,9 @@ cmd_save() {
   casks_json=$(array_to_json "${selected_casks[@]}")
   manual_json=$(array_to_json "${selected_manual[@]}")
   dotfiles_json=$(array_to_json "${selected_dotfiles[@]}")
+
+  ensure_shelve_dir
+  backup_dotfiles "${selected_dotfiles[@]}"
 
   divider
   write_config \
