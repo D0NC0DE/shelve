@@ -10,7 +10,6 @@ set -eo pipefail
 SHELVE_REPO="https://github.com/D0NC0DE/shelve.git"
 SHELVE_INSTALL_DIR="${HOME}/.shelve/tool"
 
-# Colours — keep it minimal, no dependency on utils.sh yet
 if tput setaf 1 &>/dev/null 2>&1; then
   RESET="$(tput sgr0)"
   BOLD="$(tput bold)"
@@ -78,7 +77,7 @@ fi
 # -----------------------------------------------------------------------------
 if ! command -v brew &>/dev/null; then
   if ask "Homebrew is not installed. Install it now?"; then
-    info "Installing Homebrew..."
+    info "Installing Homebrew — you may be prompted for your password..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     if [[ "$(uname -m)" == "arm64" ]]; then
       eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -111,14 +110,16 @@ printf "\n"
 # -----------------------------------------------------------------------------
 # CLONE / UPDATE SHELVE
 # gum is guaranteed to exist from here on
+# bash -c wraps git so the redirection silences git, not gum
+# placing &>/dev/null after gum would silence the spinner itself
 # -----------------------------------------------------------------------------
 if [[ -d "$SHELVE_INSTALL_DIR" ]]; then
   gum spin --spinner dot --title "Checking for updates..." -- \
-    git -C "$SHELVE_INSTALL_DIR" pull --ff-only &>/dev/null || true
-  success "shelve (already up to date)"
+    bash -c "git -C '$SHELVE_INSTALL_DIR' pull --ff-only &>/dev/null" || true
+  success "shelve (up to date)"
 else
   gum spin --spinner dot --title "Installing shelve..." -- \
-    git clone "$SHELVE_REPO" "$SHELVE_INSTALL_DIR" &>/dev/null
+    bash -c "git clone '$SHELVE_REPO' '$SHELVE_INSTALL_DIR' &>/dev/null"
   success "shelve installed"
 fi
 
@@ -126,8 +127,6 @@ chmod +x "${SHELVE_INSTALL_DIR}/shelve"
 
 # -----------------------------------------------------------------------------
 # ADD TO PATH
-# Detect which shell the user is running, write to the correct rc file.
-# touch creates the file if it doesn't exist yet.
 # -----------------------------------------------------------------------------
 SHELVE_BIN="${SHELVE_INSTALL_DIR}"
 PATH_LINE="export PATH=\"\$PATH:${SHELVE_BIN}\""
@@ -152,7 +151,6 @@ else
   success "PATH → ${RC_FILE}"
 fi
 
-# Export for current session so shelve works immediately
 export PATH="$PATH:${SHELVE_BIN}"
 
 # -----------------------------------------------------------------------------
