@@ -1,0 +1,54 @@
+name: Test Install
+
+# Runs on every push to main and on every pull request
+# This catches broken installs before users see them
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-install:
+    name: Clean macOS install
+    runs-on: macos-latest
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Check out your repo so install.sh is available
+      # -----------------------------------------------------------------------
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # 2. Run install.sh exactly as a user would
+      # We run it with bash explicitly — never rely on the shebang in CI
+      # -----------------------------------------------------------------------
+      - name: Run install.sh
+        run: bash install.sh
+
+      # -----------------------------------------------------------------------
+      # 3. Add shelve to PATH for subsequent steps
+      # $GITHUB_PATH is a special Actions file — writing to it persists
+      # the PATH change across all steps that follow
+      # -----------------------------------------------------------------------
+      - name: Add shelve to PATH
+        run: echo "$HOME/.shelve/tool" >> $GITHUB_PATH
+
+      # -----------------------------------------------------------------------
+      # 4. Verify shelve is callable and responds correctly
+      # -----------------------------------------------------------------------
+      - name: Verify shelve help runs
+        run: shelve help
+
+      # -----------------------------------------------------------------------
+      # 5. Verify shelve.json is NOT created yet (save hasn't run)
+      # Good sanity check — install should not create config files
+      # -----------------------------------------------------------------------
+      - name: Verify clean state after install
+        run: |
+          if [[ -f "$HOME/.shelve/shelve.json" ]]; then
+            echo "ERROR: shelve.json should not exist after install"
+            exit 1
+          fi
+          echo "Clean state confirmed"
