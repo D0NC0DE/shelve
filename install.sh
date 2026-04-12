@@ -34,6 +34,38 @@ ask() {
 }
 
 # -----------------------------------------------------------------------------
+# PURE BASH SPINNER
+# Used before gum is installed — runs a command in the background
+# and shows an animated spinner until it finishes
+#
+# Usage: spin "Installing gum..." brew install gum
+#
+# How it works:
+#   "$@" runs the command, & sends it to the background
+#   $! captures the background process PID
+#   kill -0 checks if the PID is still alive without killing it
+#   \r moves the cursor to the start of the line so frames overwrite each other
+# -----------------------------------------------------------------------------
+spin() {
+  local title="$1"
+  shift
+  local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+
+  "$@" &>/dev/null &
+  local pid=$!
+  local i=0
+
+  while kill -0 "$pid" 2>/dev/null; do
+    printf "\r${CYAN}${frames[$((i % 10))]}${RESET} %s" "$title"
+    i=$((i + 1))
+    sleep 0.08
+  done
+
+  wait "$pid"
+  printf "\r"
+}
+
+# -----------------------------------------------------------------------------
 # BANNER
 # -----------------------------------------------------------------------------
 printf "\n${BOLD}${CYAN}"
@@ -62,11 +94,8 @@ success "macOS $(sw_vers -productVersion)"
 # XCODE CLI TOOLS
 # -----------------------------------------------------------------------------
 if ! xcode-select -p &>/dev/null; then
-  info "Installing Xcode CLI tools..."
-  xcode-select --install 2>/dev/null || true
-  until xcode-select -p &>/dev/null 2>&1; do
-    sleep 5
-  done
+  spin "Installing Xcode CLI tools..." xcode-select --install
+  until xcode-select -p &>/dev/null 2>&1; do sleep 5; done
   success "Xcode CLI tools"
 else
   success "Xcode CLI tools"
@@ -74,6 +103,7 @@ fi
 
 # -----------------------------------------------------------------------------
 # HOMEBREW
+# Cannot be backgrounded — needs sudo and user interaction
 # -----------------------------------------------------------------------------
 if ! command -v brew &>/dev/null; then
   if ask "Homebrew is not installed. Install it now?"; then
@@ -93,11 +123,10 @@ fi
 
 # -----------------------------------------------------------------------------
 # GUM
-# Must be installed before we can use gum spin for remaining steps
+# First use of the bash spinner — gum isn't available yet
 # -----------------------------------------------------------------------------
 if ! command -v gum &>/dev/null; then
-  info "Installing gum..."
-  brew install gum &>/dev/null
+  spin "Installing gum..." brew install gum
   success "gum"
 else
   success "gum"
@@ -109,9 +138,8 @@ printf "\n"
 
 # -----------------------------------------------------------------------------
 # CLONE / UPDATE SHELVE
-# gum is guaranteed to exist from here on
+# gum is guaranteed to exist from here on — switch to gum spin
 # bash -c wraps git so the redirection silences git, not gum
-# placing &>/dev/null after gum would silence the spinner itself
 # -----------------------------------------------------------------------------
 if [[ -d "$SHELVE_INSTALL_DIR" ]]; then
   gum spin --spinner dot --title "Checking for updates..." -- \
