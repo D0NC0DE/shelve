@@ -110,18 +110,58 @@ pick_languages() {
 
 pick_tools() {
   local dev_type="$1"
+
   local all_tools=(
-    "git" "gh" "docker" "lazygit" "fzf"
-    "ripgrep" "tmux" "wget" "tree" "htop"
+    # Core
+    "git"
+    "gh"
+    "lazygit"
+    # File and search
+    "fzf"
+    "fd"
+    "ripgrep"
+    "bat"
+    "eza"
+    "zoxide"
+    "tree"
+    # Git enhancement
+    "delta"
+    "git-lfs"
+    # Data and API
+    "jq"
+    "wget"
+    "httpie"
+    # System
+    "htop"
+    "btop"
+    "tmux"
+    "tealdeer"
+    # Docker
+    "docker"
+    "lazydocker"
+    # DevOps
+    "k9s"
+    "terraform"
+    "awscli"
   )
 
-  local preselect="git"
+  local preselect
   case "$dev_type" in
-  "Web / Frontend")       preselect="git,gh,fzf,ripgrep" ;;
-  "Backend / DevOps")     preselect="git,gh,docker,lazygit,fzf,ripgrep,tmux,wget,htop" ;;
-  "Data / ML")            preselect="git,gh,fzf,ripgrep,wget,htop" ;;
-  "Mobile (iOS / Android)") preselect="git,gh,fzf,ripgrep" ;;
-  *)                      preselect="git,gh,fzf,ripgrep" ;;
+  "Web / Frontend")
+    preselect="git,gh,lazygit,fzf,fd,ripgrep,bat,eza,zoxide,delta,git-lfs,jq,wget,httpie,tealdeer"
+    ;;
+  "Backend / DevOps")
+    preselect="git,gh,lazygit,fzf,fd,ripgrep,bat,eza,zoxide,delta,git-lfs,jq,wget,httpie,htop,btop,tmux,tealdeer,docker,lazydocker,k9s,terraform,awscli"
+    ;;
+  "Data / ML")
+    preselect="git,gh,lazygit,fzf,fd,ripgrep,bat,eza,zoxide,delta,git-lfs,jq,wget,httpie,htop,btop,tealdeer"
+    ;;
+  "Mobile (iOS / Android)")
+    preselect="git,gh,lazygit,fzf,fd,ripgrep,bat,eza,zoxide,delta,git-lfs,jq,tealdeer"
+    ;;
+  *)
+    preselect="git,gh,fzf,fd,ripgrep,bat,eza,zoxide,delta,jq,tealdeer"
+    ;;
   esac
 
   log_step "CLI tools" >&2
@@ -136,18 +176,36 @@ pick_databases() {
   log_step "Databases" >&2
   log_dim "Space to toggle, enter to confirm" >&2
   printf '%s\n' \
-    "PostgreSQL" "MySQL" "Redis" "MongoDB" "SQLite" |
+    "PostgreSQL" \
+    "MySQL" \
+    "Redis" \
+    "MongoDB" \
+    "SQLite" |
   gum choose --no-limit \
     --header="Any databases? (skip with enter if none)"
 }
 
 pick_productivity() {
-  log_step "Productivity apps" >&2
+  log_step "Productivity & utilities" >&2
   log_dim "Space to toggle, enter to confirm" >&2
   printf '%s\n' \
-    "Raycast" "Rectangle" "Alfred" "Notion" "Obsidian" |
+    "Raycast" \
+    "Rectangle" \
+    "Alfred" \
+    "Maccy" \
+    "AppCleaner" \
+    "1Password" \
+    "Notion" \
+    "Obsidian" \
+    "Slack" \
+    "Zoom" \
+    "Spotify" \
+    "Shottr" \
+    "TablePlus" \
+    "Postman" \
+    "OrbStack" |
   gum choose --no-limit \
-    --header="Any productivity apps?"
+    --header="Any productivity or utility apps?"
 }
 
 # -----------------------------------------------------------------------------
@@ -262,16 +320,30 @@ install_tools() {
   local tools=("$@")
   for tool in "${tools[@]}"; do
     case "$tool" in
-    "git")     fresh_install_brew "git" ;;
-    "gh")      fresh_install_brew "gh" ;;
-    "docker")  fresh_install_cask "docker" ;;
-    "lazygit") fresh_install_brew "lazygit" ;;
-    "fzf")     fresh_install_brew "fzf" ;;
-    "ripgrep") fresh_install_brew "ripgrep" ;;
-    "tmux")    fresh_install_brew "tmux" ;;
-    "wget")    fresh_install_brew "wget" ;;
-    "tree")    fresh_install_brew "tree" ;;
-    "htop")    fresh_install_brew "htop" ;;
+    "git")        fresh_install_brew "git" ;;
+    "gh")         fresh_install_brew "gh" ;;
+    "lazygit")    fresh_install_brew "lazygit" ;;
+    "fzf")        fresh_install_brew "fzf" ;;
+    "fd")         fresh_install_brew "fd" ;;
+    "ripgrep")    fresh_install_brew "ripgrep" ;;
+    "bat")        fresh_install_brew "bat" ;;
+    "eza")        fresh_install_brew "eza" ;;
+    "zoxide")     fresh_install_brew "zoxide" ;;
+    "tree")       fresh_install_brew "tree" ;;
+    "delta")      fresh_install_brew "git-delta" ;;
+    "git-lfs")    fresh_install_brew "git-lfs" ;;
+    "jq")         fresh_install_brew "jq" ;;
+    "wget")       fresh_install_brew "wget" ;;
+    "httpie")     fresh_install_brew "httpie" ;;
+    "htop")       fresh_install_brew "htop" ;;
+    "btop")       fresh_install_brew "btop" ;;
+    "tmux")       fresh_install_brew "tmux" ;;
+    "tealdeer")   fresh_install_brew "tealdeer" ;;
+    "docker")     fresh_install_cask "docker" ;;
+    "lazydocker") fresh_install_brew "lazydocker" ;;
+    "k9s")        fresh_install_brew "k9s" ;;
+    "terraform")  fresh_install_brew "terraform" ;;
+    "awscli")     fresh_install_brew "awscli" ;;
     esac
   done
 }
@@ -293,11 +365,21 @@ install_productivity() {
   local apps=("$@")
   for app in "${apps[@]}"; do
     case "$app" in
-    "Raycast")   fresh_install_cask "raycast" ;;
-    "Rectangle") fresh_install_cask "rectangle" ;;
-    "Alfred")    fresh_install_cask "alfred" ;;
-    "Notion")    fresh_install_cask "notion" ;;
-    "Obsidian")  fresh_install_cask "obsidian" ;;
+    "Raycast")    fresh_install_cask "raycast" ;;
+    "Rectangle")  fresh_install_cask "rectangle" ;;
+    "Alfred")     fresh_install_cask "alfred" ;;
+    "Maccy")      fresh_install_cask "maccy" ;;
+    "AppCleaner") fresh_install_cask "appcleaner" ;;
+    "1Password")  fresh_install_cask "1password" ;;
+    "Notion")     fresh_install_cask "notion" ;;
+    "Obsidian")   fresh_install_cask "obsidian" ;;
+    "Slack")      fresh_install_cask "slack" ;;
+    "Zoom")       fresh_install_cask "zoom" ;;
+    "Spotify")    fresh_install_cask "spotify" ;;
+    "Shottr")     fresh_install_cask "shottr" ;;
+    "TablePlus")  fresh_install_cask "tableplus" ;;
+    "Postman")    fresh_install_cask "postman" ;;
+    "OrbStack")   fresh_install_cask "orbstack" ;;
     esac
   done
 }

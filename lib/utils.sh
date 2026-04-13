@@ -4,6 +4,10 @@
 # Every other lib file sources this first
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# COLOURS
+# tput reads terminal capabilities — silenced on terminals that don't support it
+# -----------------------------------------------------------------------------
 if tput setaf 1 &>/dev/null; then
   RESET="$(tput sgr0)"
   BOLD="$(tput bold)"
