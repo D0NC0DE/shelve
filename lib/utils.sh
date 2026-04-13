@@ -4,10 +4,6 @@
 # Every other lib file sources this first
 # =============================================================================
 
-# -----------------------------------------------------------------------------
-# COLOURS
-# tput reads terminal capabilities — silenced on terminals that don't support it
-# -----------------------------------------------------------------------------
 if tput setaf 1 &>/dev/null; then
   RESET="$(tput sgr0)"
   BOLD="$(tput bold)"
@@ -95,12 +91,31 @@ app_installed() {
     [[ -d "${HOME}/Applications/${1}.app" ]]
 }
 
+# -----------------------------------------------------------------------------
+# BREW CHECKS
+# Check directly against Cellar/Caskroom — avoids calling brew list in a loop
+# -----------------------------------------------------------------------------
 brew_package_installed() {
   [[ -d "$(brew --prefix)/Cellar/${1}" ]]
 }
 
 brew_cask_installed() {
   [[ -d "$(brew --prefix)/Caskroom/${1}" ]]
+}
+
+# -----------------------------------------------------------------------------
+# JSON HELPERS
+# Used by save.sh and fresh.sh to build shelve.json
+# -----------------------------------------------------------------------------
+array_to_json() {
+  local items=("$@")
+  if [[ ${#items[@]} -eq 0 ]]; then
+    echo "[]"
+    return
+  fi
+  local result
+  result=$(printf '"%s",' "${items[@]}")
+  echo "[${result%,}]"
 }
 
 # -----------------------------------------------------------------------------

@@ -1,23 +1,20 @@
 #!/usr/bin/env bash
 # =============================================================================
 # fresh.sh — interactive wizard for setting up a brand new Mac from scratch
-# No backup needed — just answer questions and shelve installs everything
 # =============================================================================
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/utils.sh"
 
-# =============================================================================
+# -----------------------------------------------------------------------------
 # INSTALL HELPERS
-# =============================================================================
-
-# Install a brew formula with a gum spinner, skip if already installed
+# -----------------------------------------------------------------------------
 fresh_install_brew() {
   local pkg="$1"
   if brew_package_installed "$pkg"; then
     log_dim "$pkg already installed"
   else
     if gum spin --spinner dot --title "Installing $pkg..." \
-        -- brew install "$pkg" 2>/dev/null; then
+        -- bash -c "brew install '$pkg' &>/dev/null"; then
       log_success "$pkg"
     else
       log_warn "Failed to install $pkg"
@@ -25,14 +22,13 @@ fresh_install_brew() {
   fi
 }
 
-# Install a brew cask with a gum spinner, skip if already installed
 fresh_install_cask() {
   local cask="$1"
   if brew_cask_installed "$cask"; then
     log_dim "$cask already installed"
   else
     if gum spin --spinner dot --title "Installing $cask..." \
-        -- brew install --cask "$cask" 2>/dev/null; then
+        -- bash -c "brew install --cask '$cask' &>/dev/null"; then
       log_success "$cask"
     else
       log_warn "Failed to install $cask"
@@ -40,13 +36,12 @@ fresh_install_cask() {
   fi
 }
 
-# =============================================================================
-# PICK DEVELOPER TYPE
-# =============================================================================
-
-# Ask what kind of developer the user is — used to pre-select relevant tools
+# -----------------------------------------------------------------------------
+# PICKS
+# log_step goes to stderr so it prints to screen instead of being captured
+# -----------------------------------------------------------------------------
 pick_dev_type() {
-  log_step "What kind of developer are you?"
+  log_step "What kind of developer are you?" >&2
   gum choose \
     "Web / Frontend" \
     "Backend / DevOps" \
@@ -56,12 +51,8 @@ pick_dev_type() {
     --header="Pick the closest match — you can customise everything next:"
 }
 
-# =============================================================================
-# PICK BROWSER
-# =============================================================================
-
 pick_browser() {
-  log_step "Pick your browser"
+  log_step "Pick your browser" >&2
   gum choose \
     "Brave" \
     "Chrome" \
@@ -71,12 +62,8 @@ pick_browser() {
     --header="Which browser do you want?"
 }
 
-# =============================================================================
-# PICK TERMINAL
-# =============================================================================
-
 pick_terminal() {
-  log_step "Pick your terminal"
+  log_step "Pick your terminal" >&2
   gum choose \
     "Ghostty" \
     "iTerm2" \
@@ -86,12 +73,8 @@ pick_terminal() {
     --header="Which terminal emulator do you want?"
 }
 
-# =============================================================================
-# PICK EDITOR
-# =============================================================================
-
 pick_editor() {
-  log_step "Pick your editor"
+  log_step "Pick your editor" >&2
   gum choose \
     "Cursor" \
     "Zed" \
@@ -101,12 +84,8 @@ pick_editor() {
     --header="Which editor do you want?"
 }
 
-# =============================================================================
-# PICK SHELL EXTRAS
-# =============================================================================
-
 pick_shell_extras() {
-  log_step "Shell extras"
+  log_step "Shell extras" >&2
   gum choose \
     "oh-my-zsh" \
     "starship prompt" \
@@ -115,15 +94,9 @@ pick_shell_extras() {
     --header="Any shell enhancements?"
 }
 
-# =============================================================================
-# PICK LANGUAGES
-# =============================================================================
-
-# Returns selected language install targets, one per line
 pick_languages() {
-  log_step "Languages"
+  log_step "Languages" >&2
   log_dim "Space to toggle, enter to confirm" >&2
-
   printf '%s\n' \
     "Python (via pyenv)" \
     "Node (via nvm)" \
@@ -135,100 +108,53 @@ pick_languages() {
     --header="Which languages do you work with?"
 }
 
-# =============================================================================
-# PICK TOOLS
-# =============================================================================
-
-# Builds a default selection based on dev type and presents it to the user
 pick_tools() {
   local dev_type="$1"
-
-  # git is always in — but we include it here so users can see it's included
   local all_tools=(
-    "git"
-    "gh"
-    "docker"
-    "lazygit"
-    "fzf"
-    "ripgrep"
-    "tmux"
-    "wget"
-    "tree"
-    "htop"
+    "git" "gh" "docker" "lazygit" "fzf"
+    "ripgrep" "tmux" "wget" "tree" "htop"
   )
 
-  # Build a comma-separated pre-selection string based on dev type
   local preselect="git"
   case "$dev_type" in
-  "Web / Frontend")
-    preselect="git,gh,fzf,ripgrep"
-    ;;
-  "Backend / DevOps")
-    preselect="git,gh,docker,lazygit,fzf,ripgrep,tmux,wget,htop"
-    ;;
-  "Data / ML")
-    preselect="git,gh,fzf,ripgrep,wget,htop"
-    ;;
-  "Mobile (iOS / Android)")
-    preselect="git,gh,fzf,ripgrep"
-    ;;
-  *)
-    preselect="git,gh,fzf,ripgrep"
-    ;;
+  "Web / Frontend")       preselect="git,gh,fzf,ripgrep" ;;
+  "Backend / DevOps")     preselect="git,gh,docker,lazygit,fzf,ripgrep,tmux,wget,htop" ;;
+  "Data / ML")            preselect="git,gh,fzf,ripgrep,wget,htop" ;;
+  "Mobile (iOS / Android)") preselect="git,gh,fzf,ripgrep" ;;
+  *)                      preselect="git,gh,fzf,ripgrep" ;;
   esac
 
-  log_step "CLI tools"
+  log_step "CLI tools" >&2
   log_dim "Space to toggle, enter to confirm" >&2
-
   printf '%s\n' "${all_tools[@]}" |
     gum choose --no-limit \
       --selected="$preselect" \
       --header="Which CLI tools do you want?"
 }
 
-# =============================================================================
-# PICK DATABASES
-# =============================================================================
-
 pick_databases() {
-  log_step "Databases"
+  log_step "Databases" >&2
   log_dim "Space to toggle, enter to confirm" >&2
-
   printf '%s\n' \
-    "PostgreSQL" \
-    "MySQL" \
-    "Redis" \
-    "MongoDB" \
-    "SQLite" |
+    "PostgreSQL" "MySQL" "Redis" "MongoDB" "SQLite" |
   gum choose --no-limit \
     --header="Any databases? (skip with enter if none)"
 }
 
-# =============================================================================
-# PICK PRODUCTIVITY APPS
-# =============================================================================
-
 pick_productivity() {
-  log_step "Productivity apps"
+  log_step "Productivity apps" >&2
   log_dim "Space to toggle, enter to confirm" >&2
-
   printf '%s\n' \
-    "Raycast" \
-    "Rectangle" \
-    "Alfred" \
-    "Notion" \
-    "Obsidian" |
+    "Raycast" "Rectangle" "Alfred" "Notion" "Obsidian" |
   gum choose --no-limit \
     --header="Any productivity apps?"
 }
 
-# =============================================================================
-# INSTALL BROWSER
-# =============================================================================
-
+# -----------------------------------------------------------------------------
+# INSTALLERS
+# -----------------------------------------------------------------------------
 install_browser() {
-  local choice="$1"
-  case "$choice" in
+  case "$1" in
   "Brave")   fresh_install_cask "brave-browser" ;;
   "Chrome")  fresh_install_cask "google-chrome" ;;
   "Firefox") fresh_install_cask "firefox" ;;
@@ -237,13 +163,8 @@ install_browser() {
   esac
 }
 
-# =============================================================================
-# INSTALL TERMINAL
-# =============================================================================
-
 install_terminal() {
-  local choice="$1"
-  case "$choice" in
+  case "$1" in
   "Ghostty")   fresh_install_cask "ghostty" ;;
   "iTerm2")    fresh_install_cask "iterm2" ;;
   "Warp")      fresh_install_cask "warp" ;;
@@ -252,24 +173,16 @@ install_terminal() {
   esac
 }
 
-# =============================================================================
-# INSTALL EDITOR
-# =============================================================================
-
 install_editor() {
-  local choice="$1"
-  case "$choice" in
-  "Cursor")          fresh_install_cask "cursor" ;;
-  "Zed")             fresh_install_cask "zed" ;;
-  "VS Code")         fresh_install_cask "visual-studio-code" ;;
+  case "$1" in
+  "Cursor")  fresh_install_cask "cursor" ;;
+  "Zed")     fresh_install_cask "zed" ;;
+  "VS Code") fresh_install_cask "visual-studio-code" ;;
   "Neovim + LazyVim")
     fresh_install_brew "neovim"
-    # LazyVim requires a starter config — clone it if nvim config doesn't exist
     if [[ ! -d "${HOME}/.config/nvim" ]]; then
-      log_info "Setting up LazyVim starter config..."
       if gum spin --spinner dot --title "Cloning LazyVim starter..." \
-          -- git clone https://github.com/LazyVim/starter \
-             "${HOME}/.config/nvim" 2>/dev/null; then
+          -- bash -c "git clone https://github.com/LazyVim/starter '${HOME}/.config/nvim' &>/dev/null"; then
         rm -rf "${HOME}/.config/nvim/.git"
         log_success "LazyVim starter config installed"
       else
@@ -283,20 +196,15 @@ install_editor() {
   esac
 }
 
-# =============================================================================
-# INSTALL SHELL EXTRAS
-# =============================================================================
-
 install_shell_extras() {
-  local choice="$1"
-  case "$choice" in
+  case "$1" in
   "oh-my-zsh")
     if [[ -d "${HOME}/.oh-my-zsh" ]]; then
       log_dim "oh-my-zsh already installed"
     else
       if gum spin --spinner dot --title "Installing oh-my-zsh..." \
-          -- sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended 2>/dev/null; then
-        log_success "oh-my-zsh installed"
+          -- bash -c "sh -c \"\$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" -- --unattended &>/dev/null"; then
+        log_success "oh-my-zsh"
       else
         log_warn "oh-my-zsh install failed"
       fi
@@ -314,23 +222,16 @@ install_shell_extras() {
   esac
 }
 
-# =============================================================================
-# INSTALL LANGUAGES
-# =============================================================================
-
 install_languages() {
   local languages=("$@")
   for lang in "${languages[@]}"; do
     case "$lang" in
-    "Python (via pyenv)")
-      fresh_install_brew "pyenv"
-      log_info "Run 'pyenv install 3.12' to install Python 3.12"
-      ;;
+    "Python (via pyenv)") fresh_install_brew "pyenv" ;;
     "Node (via nvm)")
       if [[ ! -d "${HOME}/.nvm" ]]; then
         if gum spin --spinner dot --title "Installing nvm..." \
-            -- bash -c "curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash" 2>/dev/null; then
-          log_success "nvm installed — restart terminal then run: nvm install --lts"
+            -- bash -c "curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash &>/dev/null"; then
+          log_success "nvm — restart terminal then run: nvm install --lts"
         else
           log_warn "nvm install failed"
         fi
@@ -338,12 +239,12 @@ install_languages() {
         log_dim "nvm already installed"
       fi
       ;;
-    "Go")    fresh_install_brew "go" ;;
+    "Go")   fresh_install_brew "go" ;;
     "Rust")
       if ! command_exists rustup; then
-        if gum spin --spinner dot --title "Installing Rust via rustup..." \
-            -- bash -c "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y" 2>/dev/null; then
-          log_success "Rust installed"
+        if gum spin --spinner dot --title "Installing Rust..." \
+            -- bash -c "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y &>/dev/null"; then
+          log_success "Rust"
         else
           log_warn "Rust install failed"
         fi
@@ -351,15 +252,11 @@ install_languages() {
         log_dim "rustup already installed"
       fi
       ;;
-    "Ruby")  fresh_install_brew "rbenv" ;;
-    "Java")  fresh_install_cask "temurin" ;;
+    "Ruby") fresh_install_brew "rbenv" ;;
+    "Java") fresh_install_cask "temurin" ;;
     esac
   done
 }
-
-# =============================================================================
-# INSTALL TOOLS
-# =============================================================================
 
 install_tools() {
   local tools=("$@")
@@ -379,10 +276,6 @@ install_tools() {
   done
 }
 
-# =============================================================================
-# INSTALL DATABASES
-# =============================================================================
-
 install_databases() {
   local dbs=("$@")
   for db in "${dbs[@]}"; do
@@ -395,10 +288,6 @@ install_databases() {
     esac
   done
 }
-
-# =============================================================================
-# INSTALL PRODUCTIVITY
-# =============================================================================
 
 install_productivity() {
   local apps=("$@")
@@ -413,17 +302,15 @@ install_productivity() {
   done
 }
 
-# =============================================================================
-# SAVE TO SHELVE.JSON
-# Optionally persists the fresh setup so 'shelve restore' can use it later
-# =============================================================================
-
+# -----------------------------------------------------------------------------
+# SAVE FRESH SETUP TO SHELVE.JSON
+# array_to_json comes from utils.sh
+# -----------------------------------------------------------------------------
 save_fresh_to_json() {
   local browser="$1"
   local terminal_choice="$2"
   local editor_choice="$3"
-  shift 3
-  local tools=("$@")
+  local languages=("${@:4}")
 
   local macos arch shell_name cli_editor
   macos=$(sw_vers -productVersion 2>/dev/null)
@@ -433,7 +320,6 @@ save_fresh_to_json() {
   command_exists nvim && cli_editor="neovim"
   command_exists vim  && [[ "$cli_editor" == "none" ]] && cli_editor="vim"
 
-  # Map display names to cask names for brews/casks arrays
   local casks_list=()
   case "$browser" in
   "Brave")   casks_list+=("brave-browser") ;;
@@ -450,34 +336,20 @@ save_fresh_to_json() {
   esac
 
   case "$editor_choice" in
-  "Cursor")          casks_list+=("cursor") ;;
-  "Zed")             casks_list+=("zed") ;;
-  "VS Code")         casks_list+=("visual-studio-code") ;;
+  "Cursor")  casks_list+=("cursor") ;;
+  "Zed")     casks_list+=("zed") ;;
+  "VS Code") casks_list+=("visual-studio-code") ;;
   esac
-
-  local brews_installed=()
-  for tool in "${tools[@]}"; do
-    case "$tool" in
-    "git")     brews_installed+=("git") ;;
-    "gh")      brews_installed+=("gh") ;;
-    "lazygit") brews_installed+=("lazygit") ;;
-    "fzf")     brews_installed+=("fzf") ;;
-    "ripgrep") brews_installed+=("ripgrep") ;;
-    "tmux")    brews_installed+=("tmux") ;;
-    "wget")    brews_installed+=("wget") ;;
-    "tree")    brews_installed+=("tree") ;;
-    "htop")    brews_installed+=("htop") ;;
-    esac
-  done
-
-  source "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/save.sh"
-
-  local brews_json casks_json
-  brews_json=$(array_to_json "${brews_installed[@]}")
-  casks_json=$(array_to_json "${casks_list[@]}")
 
   local browser_role="$browser"
   [[ "$browser_role" == "Skip" ]] && browser_role="none"
+
+  local brews_json casks_json langs_json
+  brews_json=$(array_to_json "${selected_tools[@]}")
+  casks_json=$(array_to_json "${casks_list[@]}")
+  langs_json=$(array_to_json "${languages[@]}")
+
+  ensure_shelve_dir
 
   cat >"$SHELVE_CONFIG" <<EOF
 {
@@ -496,6 +368,7 @@ save_fresh_to_json() {
   },
   "brews": $brews_json,
   "casks": $casks_json,
+  "languages": $langs_json,
   "manual_apps": [],
   "dotfiles": []
 }
@@ -504,17 +377,17 @@ EOF
   log_success "Saved to ${SHELVE_CONFIG}"
 }
 
-# =============================================================================
+# -----------------------------------------------------------------------------
 # CMD FRESH
-# =============================================================================
-
-cmd_fresh() {
+# Uses a while loop instead of recursion for "start over"
+# -----------------------------------------------------------------------------
+_fresh_run() {
   shelve_banner
 
   gum style \
-    --border normal \
+    --border rounded \
     --padding "1 2" \
-    --border-foreground 212 \
+    --border-foreground 6 \
     "Welcome to shelve fresh" \
     "" \
     "This wizard sets up a brand new Mac from scratch." \
@@ -528,11 +401,9 @@ cmd_fresh() {
     exit 0
   fi
 
-  # ── Step 1: Developer type ─────────────────────────────────────────────────
   local dev_type
   dev_type=$(pick_dev_type)
 
-  # ── Step 2: Picks ──────────────────────────────────────────────────────────
   local browser_choice terminal_choice editor_choice shell_choice
   browser_choice=$(pick_browser)
   terminal_choice=$(pick_terminal)
@@ -559,9 +430,9 @@ cmd_fresh() {
     [[ -n "$line" ]] && selected_productivity+=("$line")
   done < <(pick_productivity)
 
-  # ── Confirm screen ─────────────────────────────────────────────────────────
+  # Confirm screen
   divider
-  log_step "Here's what will be installed"
+  log_step "Here's what will be installed" >&2
   echo ""
   printf "  ${CYAN}Developer type${RESET}  %s\n" "$dev_type"
   printf "  ${CYAN}Browser${RESET}         %s\n" "$browser_choice"
@@ -604,53 +475,42 @@ cmd_fresh() {
     --header="What would you like to do?" </dev/tty)
 
   case "$action" in
-  "Start over")
-    cmd_fresh
-    return
-    ;;
+  "Start over") return 1 ;;
   "Abort")
     log_warn "Aborted"
     exit 0
     ;;
   esac
 
-  # ── Install ────────────────────────────────────────────────────────────────
+  # Install
   log_step "Installing — this may take a few minutes"
   divider
 
-  log_step "Browser"
-  install_browser "$browser_choice"
+  log_step "Browser";      install_browser "$browser_choice"
+  log_step "Terminal";     install_terminal "$terminal_choice"
+  log_step "Editor";       install_editor "$editor_choice"
+  log_step "Shell extras"; install_shell_extras "$shell_choice"
 
-  log_step "Terminal"
-  install_terminal "$terminal_choice"
-
-  log_step "Editor"
-  install_editor "$editor_choice"
-
-  log_step "Shell extras"
-  install_shell_extras "$shell_choice"
-
-  if [[ ${#selected_languages[@]} -gt 0 ]]; then
+  [[ ${#selected_languages[@]} -gt 0 ]] && {
     log_step "Languages"
     install_languages "${selected_languages[@]}"
-  fi
+  }
 
-  if [[ ${#selected_tools[@]} -gt 0 ]]; then
+  [[ ${#selected_tools[@]} -gt 0 ]] && {
     log_step "CLI tools"
     install_tools "${selected_tools[@]}"
-  fi
+  }
 
-  if [[ ${#selected_dbs[@]} -gt 0 ]]; then
+  [[ ${#selected_dbs[@]} -gt 0 ]] && {
     log_step "Databases"
     install_databases "${selected_dbs[@]}"
-  fi
+  }
 
-  if [[ ${#selected_productivity[@]} -gt 0 ]]; then
+  [[ ${#selected_productivity[@]} -gt 0 ]] && {
     log_step "Productivity"
     install_productivity "${selected_productivity[@]}"
-  fi
+  }
 
-  # ── Post-install ───────────────────────────────────────────────────────────
   divider
   log_success "All done! Your Mac is set up."
   echo ""
@@ -661,10 +521,16 @@ cmd_fresh() {
       "$browser_choice" \
       "$terminal_choice" \
       "$editor_choice" \
-      "${selected_tools[@]}"
+      "${selected_languages[@]}"
     log_info "Run 'shelve restore' on your next Mac to replicate this setup."
   fi
 
   echo ""
   log_success "Welcome to your new Mac. Happy hacking."
+}
+
+cmd_fresh() {
+  while true; do
+    _fresh_run && break
+  done
 }

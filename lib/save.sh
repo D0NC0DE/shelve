@@ -8,20 +8,6 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/detect.sh"
 source "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/menu.sh"
 
 # -----------------------------------------------------------------------------
-# ARRAY TO JSON
-# -----------------------------------------------------------------------------
-array_to_json() {
-  local items=("$@")
-  if [[ ${#items[@]} -eq 0 ]]; then
-    echo "[]"
-    return
-  fi
-  local result
-  result=$(printf '"%s",' "${items[@]}")
-  echo "[${result%,}]"
-}
-
-# -----------------------------------------------------------------------------
 # WRITE SHELVE.JSON
 # -----------------------------------------------------------------------------
 write_config() {
@@ -71,8 +57,6 @@ EOF
 
 # -----------------------------------------------------------------------------
 # BACKUP DOTFILES
-# Copies selected dotfiles into ~/.shelve/dotfiles/ so restore.sh can find them
-# Directories (e.g. ~/.config/nvim) are copied recursively with cp -r
 # -----------------------------------------------------------------------------
 backup_dotfiles() {
   local files=("$@")
@@ -94,33 +78,11 @@ backup_dotfiles() {
 }
 
 # -----------------------------------------------------------------------------
-# CHECK OPTIONAL TOOLS
-# -----------------------------------------------------------------------------
-check_optional_tools() {
-  log_step "Optional tools"
-
-  if ! command_exists gh; then
-    log_warn "gh not installed — GitHub push won't be automated"
-    if menu_confirm "Install GitHub CLI (gh) now?"; then
-      brew install gh
-      log_success "gh installed"
-    fi
-  else
-    log_success "gh installed"
-  fi
-}
-
-# -----------------------------------------------------------------------------
 # CMD SAVE
 # -----------------------------------------------------------------------------
 cmd_save() {
   shelve_banner
   log_step "Saving your Mac setup"
-
-  check_optional_tools
-
-  log_step "Select what to save"
-  log_info "Go through each category — deselect anything you don't want"
   divider
 
   local selected_brews=()
