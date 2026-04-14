@@ -14,7 +14,8 @@ write_config() {
   local brews_json="$1"
   local casks_json="$2"
   local manual_json="$3"
-  local dotfiles_json="$4"
+  local manual_installs_json="$4"
+  local dotfiles_json="$5"
 
   local shell_name macos arch browser terminal editor cli_editor
   shell_name=$(basename "$SHELL")
@@ -47,6 +48,7 @@ write_config() {
   "brews": $brews_json,
   "casks": $casks_json,
   "manual_apps": $manual_json,
+  "manual_installs": $manual_installs_json,
   "dotfiles": $dotfiles_json
 }
 EOF
@@ -91,6 +93,7 @@ cmd_save() {
   local selected_brews=()
   local selected_casks=()
   local selected_manual=()
+  local selected_manual_installs=()
   local selected_dotfiles=()
 
   while IFS= read -r line; do
@@ -106,13 +109,18 @@ cmd_save() {
   done < <(menu_manual_apps)
 
   while IFS= read -r line; do
+    [[ -n "$line" ]] && selected_manual_installs+=("$line")
+  done < <(menu_manual_installs)
+
+  while IFS= read -r line; do
     [[ -n "$line" ]] && selected_dotfiles+=("$line")
   done < <(menu_dotfiles)
 
-  local brews_json casks_json manual_json dotfiles_json
+  local brews_json casks_json manual_json manual_installs_json dotfiles_json
   brews_json=$(array_to_json "${selected_brews[@]}")
   casks_json=$(array_to_json "${selected_casks[@]}")
   manual_json=$(array_to_json "${selected_manual[@]}")
+  manual_installs_json=$(array_to_json "${selected_manual_installs[@]}")
   dotfiles_json=$(array_to_json "${selected_dotfiles[@]}")
 
   ensure_shelve_dir
@@ -123,12 +131,14 @@ cmd_save() {
     "$brews_json" \
     "$casks_json" \
     "$manual_json" \
+    "$manual_installs_json" \
     "$dotfiles_json"
 
   log_step "Summary"
   log_success "${#selected_brews[@]} formulae saved"
   log_success "${#selected_casks[@]} casks saved"
   log_success "${#selected_manual[@]} manual apps saved"
+  log_success "${#selected_manual_installs[@]} manual installs saved"
   log_success "${#selected_dotfiles[@]} dotfiles saved"
 
   divider

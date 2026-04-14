@@ -74,6 +74,16 @@ detect_manual_apps() {
 }
 
 # -----------------------------------------------------------------------------
+# MANUAL INSTALLS
+# Tools installed outside Homebrew via curl scripts
+# -----------------------------------------------------------------------------
+detect_manual_installs() {
+  [[ -d "${HOME}/.nvm" ]] && echo "nvm"
+  command_exists rustup && echo "rust (rustup)"
+  [[ -d "${HOME}/.oh-my-zsh" ]] && echo "oh-my-zsh"
+}
+
+# -----------------------------------------------------------------------------
 # DOTFILES
 # -----------------------------------------------------------------------------
 detect_dotfiles() {
@@ -186,6 +196,9 @@ detect_all() {
 
   log_info "Manual apps"
   detect_manual_apps | while IFS= read -r p; do log_dim "$p"; done
+
+  log_info "Manual installs"
+  detect_manual_installs | while IFS= read -r p; do log_dim "$p"; done
 
   log_info "Dotfiles"
   detect_dotfiles | while IFS= read -r p; do log_dim "$p"; done

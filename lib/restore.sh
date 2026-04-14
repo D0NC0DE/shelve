@@ -10,6 +10,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/menu.sh"
 selected_brews=()
 selected_casks=()
 selected_manual=()
+selected_manual_installs=()
 selected_dotfiles=()
 
 # -----------------------------------------------------------------------------
@@ -51,6 +52,7 @@ run_selections() {
   selected_brews=()
   selected_casks=()
   selected_manual=()
+  selected_manual_installs=()
   selected_dotfiles=()
 
   local items=()
@@ -90,6 +92,17 @@ run_selections() {
   items=()
   while IFS= read -r line; do
     [[ -n "$line" ]] && items+=("$line")
+  done < <(parse_json_array "manual_installs")
+  if [[ ${#items[@]} -gt 0 ]]; then
+    log_step "Manual installs" >&2
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && selected_manual_installs+=("$line")
+    done < <(menu_select "Select manual installs to note:" "${items[@]}")
+  fi
+
+  items=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && items+=("$line")
   done < <(parse_json_array "dotfiles")
   if [[ ${#items[@]} -gt 0 ]]; then
     log_step "Dotfiles" >&2
@@ -113,6 +126,10 @@ run_selections() {
   echo ""
   printf "  ${CYAN}Manual apps${RESET} ${#selected_manual[@]} selected\n"
   for item in "${selected_manual[@]}"; do log_dim "  + $item"; done
+
+  echo ""
+  printf "  ${CYAN}Manual installs${RESET} ${#selected_manual_installs[@]} selected\n"
+  for item in "${selected_manual_installs[@]}"; do log_dim "  + $item"; done
 
   echo ""
   printf "  ${CYAN}Dotfiles${RESET}    ${#selected_dotfiles[@]} selected\n"
@@ -195,6 +212,38 @@ install_casks() {
   done
 
   [[ ${#failed[@]} -gt 0 ]] && log_warn "Failed: ${failed[*]}"
+}
+
+# -----------------------------------------------------------------------------
+# SHOW MANUAL INSTALLS
+# -----------------------------------------------------------------------------
+show_manual_installs() {
+  [[ ${#selected_manual_installs[@]} -eq 0 ]] && return
+
+  log_step "Manual installs — re-install these yourself"
+  log_dim "These tools were installed outside Homebrew"
+  echo ""
+
+  for item in "${selected_manual_installs[@]}"; do
+    case "$item" in
+    "nvm")
+      printf "  ${YELLOW}•${RESET} nvm\n"
+      printf "    ${DIM}curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash${RESET}\n"
+      ;;
+    "rust (rustup)")
+      printf "  ${YELLOW}•${RESET} Rust\n"
+      printf "    ${DIM}curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh${RESET}\n"
+      ;;
+    "oh-my-zsh")
+      printf "  ${YELLOW}•${RESET} oh-my-zsh\n"
+      printf "    ${DIM}sh -c \"\$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\"${RESET}\n"
+      ;;
+    *)
+      printf "  ${YELLOW}•${RESET} %s\n" "$item"
+      ;;
+    esac
+  done
+  echo ""
 }
 
 # -----------------------------------------------------------------------------
@@ -290,11 +339,14 @@ cmd_restore() {
 
   install_brews
   install_casks
+  show_manual_installs
   show_manual_apps
   restore_dotfiles
 
   divider
   log_success "Restore complete!"
+  [[ ${#selected_manual_installs[@]} -gt 0 ]] &&
+    log_dim "Don't forget to run the manual install commands listed above"
   [[ ${#selected_manual[@]} -gt 0 ]] &&
     log_dim "Don't forget to download the manual apps listed above"
 }

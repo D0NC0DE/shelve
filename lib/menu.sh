@@ -20,7 +20,7 @@ menu_select() {
     --selected="*" \
     --header="$header" \
     --height=20 \
-    -- "${items[@]}" 
+    -- "${items[@]}"
 }
 
 # -----------------------------------------------------------------------------
@@ -85,6 +85,24 @@ menu_manual_apps() {
   log_step "Manual apps" >&2
   log_dim "These will be listed as a reminder on restore" >&2
   menu_select "Select manual apps to save:" "${apps[@]}"
+}
+
+# -----------------------------------------------------------------------------
+# MENU MANUAL INSTALLS
+# -----------------------------------------------------------------------------
+menu_manual_installs() {
+  local installs=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && installs+=("$line")
+  done < <(detect_manual_installs)
+
+  if [[ ${#installs[@]} -eq 0 ]]; then
+    return
+  fi
+
+  log_step "Manual installs" >&2
+  log_dim "These will be listed as a reminder on restore" >&2
+  menu_select "Select manual installs to save:" "${installs[@]}"
 }
 
 # -----------------------------------------------------------------------------

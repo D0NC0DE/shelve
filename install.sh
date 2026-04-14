@@ -34,8 +34,8 @@ ask() {
 }
 
 # -----------------------------------------------------------------------------
-# Runs a command in the background and shows an animated spinner until it finishes
-# Usage: spin "title" command args...
+# SPINNER
+# Used before gum is installed — after that gum spin takes over
 # -----------------------------------------------------------------------------
 spin() {
   local title="$1"
@@ -128,7 +128,6 @@ printf "\n"
 
 # -----------------------------------------------------------------------------
 # CLONE / UPDATE SHELVE
-# bash -c wraps git so the redirection silences git, not gum
 # -----------------------------------------------------------------------------
 if [[ -d "$SHELVE_INSTALL_DIR" ]]; then
   gum spin --spinner dot --title "Checking for updates..." -- \
@@ -137,6 +136,12 @@ if [[ -d "$SHELVE_INSTALL_DIR" ]]; then
 else
   gum spin --spinner dot --title "Installing shelve..." -- \
     bash -c "git clone '$SHELVE_REPO' '$SHELVE_INSTALL_DIR' &>/dev/null"
+
+  if [[ ! -f "${SHELVE_INSTALL_DIR}/shelve" ]]; then
+    error "Install failed — shelve binary not found after clone"
+    exit 1
+  fi
+
   success "shelve installed"
 fi
 
@@ -160,7 +165,7 @@ fi
 
 touch "$RC_FILE"
 
-if grep -q "shelve" "$RC_FILE"; then
+if grep -q "shelve/tool" "$RC_FILE"; then
   success "PATH (already configured)"
 else
   printf "\n# shelve — shelf your setup\n" >> "$RC_FILE"

@@ -20,8 +20,6 @@ fi
 
 # -----------------------------------------------------------------------------
 # PREREQUISITES
-# install.sh guarantees these exist — this catches manual clones
-# Skipped for help so the user can always get usage info
 # -----------------------------------------------------------------------------
 check_prerequisites() {
   if ! xcode-select -p &>/dev/null; then
@@ -31,7 +29,7 @@ check_prerequisites() {
   fi
 
   if ! command_exists brew; then
-    log_info "Installing Homebrew — you may be prompted for your password..."
+    log_warn "Homebrew not found — installing now (you may be prompted for your password)..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     if [[ "$(uname -m)" == "arm64" ]]; then
       eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -54,12 +52,16 @@ show_help() {
   divider
   printf "\n"
   printf "  ${BOLD}Usage:${RESET} shelve ${CYAN}<command>${RESET}\n\n"
+  show_commands
+  divider
+  printf "\n  ${DIM}v${SHELVE_VERSION}${RESET}\n\n"
+}
+
+show_commands() {
   printf "  ${CYAN}save${RESET}       capture your current Mac setup\n"
   printf "  ${CYAN}restore${RESET}    restore from a saved config\n"
   printf "  ${CYAN}fresh${RESET}      spin up a brand new Mac from zero\n"
   printf "  ${CYAN}help${RESET}       show this help\n\n"
-  divider
-  printf "\n  ${DIM}v${SHELVE_VERSION}${RESET}\n\n"
 }
 
 # -----------------------------------------------------------------------------
@@ -88,10 +90,7 @@ help | --help | -h)
 *)
   log_error "Unknown command: ${1}"
   printf "\n"
-  printf "  ${CYAN}save${RESET}       capture your current Mac setup\n"
-  printf "  ${CYAN}restore${RESET}    restore from a saved config\n"
-  printf "  ${CYAN}fresh${RESET}      spin up a brand new Mac from zero\n"
-  printf "  ${CYAN}help${RESET}       show this help\n\n"
+  show_commands
   exit 1
   ;;
 esac

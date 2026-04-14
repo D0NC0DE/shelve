@@ -22,6 +22,7 @@ The core three commands are stable and working.
 | Homebrew casks — save and restore | ✅ Done |
 | Dotfiles backup and restore | ✅ Done |
 | Manual apps detection and listing | ✅ Done |
+| Manual installs detection (nvm, rustup, oh-my-zsh) | ✅ Done |
 | Role detection — browser, terminal, editor | ✅ Done |
 
 ---
@@ -42,6 +43,15 @@ App Store apps are completely invisible to Homebrew. When switching Macs, they'r
 - Save app names and IDs to `shelve.json`
 - Restore via `mas install <id>` during `shelve restore`
 - Warn gracefully if `mas` is not installed, with instructions to install it
+
+### Manual installs detection
+Tools installed outside Homebrew via curl scripts are invisible to `brew list`. Shelve detects and saves them so they're not forgotten on a new Mac.
+- Detect Node version managers: nvm (`~/.nvm`), volta (`~/.volta`), fnm (if not brew-installed), asdf (`~/.asdf`), mise (`~/.local/share/mise`)
+- Detect language runtimes: rustup, bun (`~/.bun`), deno (`~/.deno`), sdkman (`~/.sdkman`)
+- Detect shell tools: oh-my-zsh (`~/.oh-my-zsh`)
+- Save to `manual_installs` key in `shelve.json`
+- On restore, list each tool with its official install command — no automation, just a clear reminder
+- fnm guard: only flag as manual install if not already tracked by Homebrew
 
 ### Git config setup in `shelve fresh`
 Developers consistently forget this. Commits end up attributed to "unknown" for weeks.
@@ -210,6 +220,7 @@ Not committed to any version. Good ideas worth tracking.
 | Idea | Notes |
 |---|---|
 | `shelve schedule` | Auto-run `shelve save` on a schedule via launchd |
+| Auto-restore manual installs | Automatically re-run curl install scripts for nvm, rustup, oh-my-zsh etc. during `shelve restore` instead of just listing them as reminders |
 | App version pinning | Save and restore specific versions of packages, not just latest |
 | Plugin system | Let users define custom detect/save/restore scripts for tools shelve doesn't know about |
 | Fish shell support | Currently zsh and bash only |

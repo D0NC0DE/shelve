@@ -5,6 +5,11 @@
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/utils.sh"
 
+# Script-level variables — shared between _fresh_run and save_fresh_to_json
+selected_languages=()
+selected_productivity=()
+shell_choice=""
+
 # -----------------------------------------------------------------------------
 # INSTALL HELPERS
 # -----------------------------------------------------------------------------
@@ -38,7 +43,6 @@ fresh_install_cask() {
 
 # -----------------------------------------------------------------------------
 # PICKS
-# log_step goes to stderr so it prints to screen instead of being captured
 # -----------------------------------------------------------------------------
 pick_dev_type() {
   log_step "What kind of developer are you?" >&2
@@ -96,27 +100,24 @@ pick_shell_extras() {
 
 pick_languages() {
   log_step "Languages" >&2
-  log_dim "Space to toggle, enter to confirm" >&2
-  printf '%s\n' \
+  gum choose --no-limit \
+    --header="Which languages do you work with?" \
+    -- \
     "Python (via pyenv)" \
     "Node (via nvm)" \
     "Go" \
     "Rust" \
     "Ruby" \
-    "Java" |
-  gum choose --no-limit \
-    --header="Which languages do you work with?"
+    "Java"
 }
 
 pick_tools() {
   local dev_type="$1"
 
   local all_tools=(
-    # Core
     "git"
     "gh"
     "lazygit"
-    # File and search
     "fzf"
     "fd"
     "ripgrep"
@@ -124,22 +125,17 @@ pick_tools() {
     "eza"
     "zoxide"
     "tree"
-    # Git enhancement
     "delta"
     "git-lfs"
-    # Data and API
     "jq"
     "wget"
     "httpie"
-    # System
     "htop"
     "btop"
     "tmux"
     "tealdeer"
-    # Docker
     "docker"
     "lazydocker"
-    # DevOps
     "k9s"
     "terraform"
     "awscli"
@@ -165,30 +161,29 @@ pick_tools() {
   esac
 
   log_step "CLI tools" >&2
-  log_dim "Space to toggle, enter to confirm" >&2
-  printf '%s\n' "${all_tools[@]}" |
-    gum choose --no-limit \
-      --selected="$preselect" \
-      --header="Which CLI tools do you want?"
+  gum choose --no-limit \
+    --selected="$preselect" \
+    --header="Which CLI tools do you want?" \
+    -- "${all_tools[@]}"
 }
 
 pick_databases() {
   log_step "Databases" >&2
-  log_dim "Space to toggle, enter to confirm" >&2
-  printf '%s\n' \
+  gum choose --no-limit \
+    --header="Any databases? (skip with enter if none)" \
+    -- \
     "PostgreSQL" \
     "MySQL" \
     "Redis" \
     "MongoDB" \
-    "SQLite" |
-  gum choose --no-limit \
-    --header="Any databases? (skip with enter if none)"
+    "SQLite"
 }
 
 pick_productivity() {
   log_step "Productivity & utilities" >&2
-  log_dim "Space to toggle, enter to confirm" >&2
-  printf '%s\n' \
+  gum choose --no-limit \
+    --header="Any productivity or utility apps?" \
+    -- \
     "Raycast" \
     "Rectangle" \
     "Alfred" \
@@ -203,9 +198,7 @@ pick_productivity() {
     "Shottr" \
     "TablePlus" \
     "Postman" \
-    "OrbStack" |
-  gum choose --no-limit \
-    --header="Any productivity or utility apps?"
+    "OrbStack"
 }
 
 # -----------------------------------------------------------------------------
@@ -241,7 +234,7 @@ install_editor() {
     if [[ ! -d "${HOME}/.config/nvim" ]]; then
       if gum spin --spinner dot --title "Cloning LazyVim starter..." \
           -- bash -c "git clone https://github.com/LazyVim/starter '${HOME}/.config/nvim' &>/dev/null"; then
-        rm -rf "${HOME}/.config/nvim/.git"
+        [[ -d "${HOME}/.config/nvim/.git" ]] && rm -rf "${HOME}/.config/nvim/.git"
         log_success "LazyVim starter config installed"
       else
         log_warn "Could not clone LazyVim starter — set it up manually"
@@ -287,8 +280,12 @@ install_languages() {
     "Python (via pyenv)") fresh_install_brew "pyenv" ;;
     "Node (via nvm)")
       if [[ ! -d "${HOME}/.nvm" ]]; then
+        local nvm_version
+        nvm_version=$(curl -fsSL https://api.github.com/repos/nvm-sh/nvm/releases/latest \
+          2>/dev/null | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/')
+        [[ -z "$nvm_version" ]] && nvm_version="0.40.1"
         if gum spin --spinner dot --title "Installing nvm..." \
-            -- bash -c "curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash &>/dev/null"; then
+            -- bash -c "curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v${nvm_version}/install.sh | bash &>/dev/null"; then
           log_success "nvm — restart terminal then run: nvm install --lts"
         else
           log_warn "nvm install failed"
@@ -386,13 +383,12 @@ install_productivity() {
 
 # -----------------------------------------------------------------------------
 # SAVE FRESH SETUP TO SHELVE.JSON
-# array_to_json comes from utils.sh
 # -----------------------------------------------------------------------------
 save_fresh_to_json() {
   local browser="$1"
   local terminal_choice="$2"
   local editor_choice="$3"
-  local languages=("${@:4}")
+  local tools=("${@:4}")
 
   local macos arch shell_name cli_editor
   macos=$(sw_vers -productVersion 2>/dev/null)
@@ -423,13 +419,50 @@ save_fresh_to_json() {
   "VS Code") casks_list+=("visual-studio-code") ;;
   esac
 
+  for app in "${selected_productivity[@]}"; do
+    case "$app" in
+    "Raycast")    casks_list+=("raycast") ;;
+    "Rectangle")  casks_list+=("rectangle") ;;
+    "Alfred")     casks_list+=("alfred") ;;
+    "Maccy")      casks_list+=("maccy") ;;
+    "AppCleaner") casks_list+=("appcleaner") ;;
+    "1Password")  casks_list+=("1password") ;;
+    "Notion")     casks_list+=("notion") ;;
+    "Obsidian")   casks_list+=("obsidian") ;;
+    "Slack")      casks_list+=("slack") ;;
+    "Zoom")       casks_list+=("zoom") ;;
+    "Spotify")    casks_list+=("spotify") ;;
+    "Shottr")     casks_list+=("shottr") ;;
+    "TablePlus")  casks_list+=("tableplus") ;;
+    "Postman")    casks_list+=("postman") ;;
+    "OrbStack")   casks_list+=("orbstack") ;;
+    esac
+  done
+
+  # Map languages to brews, casks, or manual_installs
+  local manual_installs_list=()
+  for lang in "${selected_languages[@]}"; do
+    case "$lang" in
+    "Python (via pyenv)") tools+=("pyenv") ;;
+    "Go")                 tools+=("go") ;;
+    "Ruby")               tools+=("rbenv") ;;
+    "Java")               casks_list+=("temurin") ;;
+    "Node (via nvm)")     manual_installs_list+=("nvm") ;;
+    "Rust")               manual_installs_list+=("rust (rustup)") ;;
+    esac
+  done
+
+  # Add oh-my-zsh to manual_installs if selected
+  [[ "$shell_choice" == "oh-my-zsh" || "$shell_choice" == "Both" ]] &&
+    manual_installs_list+=("oh-my-zsh")
+
   local browser_role="$browser"
   [[ "$browser_role" == "Skip" ]] && browser_role="none"
 
-  local brews_json casks_json langs_json
-  brews_json=$(array_to_json "${selected_tools[@]}")
+  local brews_json casks_json manual_installs_json
+  brews_json=$(array_to_json "${tools[@]}")
   casks_json=$(array_to_json "${casks_list[@]}")
-  langs_json=$(array_to_json "${languages[@]}")
+  manual_installs_json=$(array_to_json "${manual_installs_list[@]}")
 
   ensure_shelve_dir
 
@@ -450,8 +483,8 @@ save_fresh_to_json() {
   },
   "brews": $brews_json,
   "casks": $casks_json,
-  "languages": $langs_json,
   "manual_apps": [],
+  "manual_installs": $manual_installs_json,
   "dotfiles": []
 }
 EOF
@@ -461,7 +494,6 @@ EOF
 
 # -----------------------------------------------------------------------------
 # CMD FRESH
-# Uses a while loop instead of recursion for "start over"
 # -----------------------------------------------------------------------------
 _fresh_run() {
   shelve_banner
@@ -486,13 +518,13 @@ _fresh_run() {
   local dev_type
   dev_type=$(pick_dev_type)
 
-  local browser_choice terminal_choice editor_choice shell_choice
+  local browser_choice terminal_choice editor_choice
   browser_choice=$(pick_browser)
   terminal_choice=$(pick_terminal)
   editor_choice=$(pick_editor)
   shell_choice=$(pick_shell_extras)
 
-  local selected_languages=()
+  selected_languages=()
   while IFS= read -r line; do
     [[ -n "$line" ]] && selected_languages+=("$line")
   done < <(pick_languages)
@@ -507,7 +539,7 @@ _fresh_run() {
     [[ -n "$line" ]] && selected_dbs+=("$line")
   done < <(pick_databases)
 
-  local selected_productivity=()
+  selected_productivity=()
   while IFS= read -r line; do
     [[ -n "$line" ]] && selected_productivity+=("$line")
   done < <(pick_productivity)
@@ -603,7 +635,7 @@ _fresh_run() {
       "$browser_choice" \
       "$terminal_choice" \
       "$editor_choice" \
-      "${selected_languages[@]}"
+      "${selected_tools[@]}"
     log_info "Run 'shelve restore' on your next Mac to replicate this setup."
   fi
 
