@@ -7,27 +7,19 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/utils.sh"
 
 # -----------------------------------------------------------------------------
 # MENU SELECT
-# Generic checkbox — all items selected by default
-# Only selected items go to stdout — log messages go to stderr
 # -----------------------------------------------------------------------------
 menu_select() {
   local header="$1"
   shift
   local items=("$@")
 
+  log_dim "Space to deselect, enter to confirm" >&2
+
   printf '%s\n' "${items[@]}" | gum choose \
     --no-limit \
     --selected="*" \
     --header="$header" \
     --height=20
-}
-
-# -----------------------------------------------------------------------------
-# MENU CONFIRM
-# -----------------------------------------------------------------------------
-menu_confirm() {
-  local prompt="${1:-Are you sure?}"
-  gum confirm "$prompt"
 }
 
 # -----------------------------------------------------------------------------
@@ -54,7 +46,6 @@ menu_brews() {
   fi
 
   log_step "Homebrew formulae" >&2
-  log_dim "Space to deselect, enter to confirm" >&2
   menu_select "Select formulae to save:" "${brews[@]}"
 }
 
@@ -73,7 +64,6 @@ menu_casks() {
   fi
 
   log_step "Homebrew casks" >&2
-  log_dim "Space to deselect, enter to confirm" >&2
   menu_select "Select casks to save:" "${casks[@]}"
 }
 
@@ -87,13 +77,12 @@ menu_manual_apps() {
   done < <(detect_manual_apps)
 
   if [[ ${#apps[@]} -eq 0 ]]; then
-    log_dim "No manual apps found" >&2
+    log_warn "No manual apps found" >&2
     return
   fi
 
   log_step "Manual apps" >&2
-  log_dim "These apps have no automated install — a download URL will be saved" >&2
-  log_dim "Space to deselect, enter to confirm" >&2
+  log_dim "These will be listed as a reminder on restore" >&2
   menu_select "Select manual apps to save:" "${apps[@]}"
 }
 
@@ -112,6 +101,5 @@ menu_dotfiles() {
   fi
 
   log_step "Dotfiles" >&2
-  log_dim "Space to deselect, enter to confirm" >&2
   menu_select "Select dotfiles to back up:" "${files[@]}"
 }

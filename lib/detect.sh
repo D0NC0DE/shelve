@@ -11,7 +11,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/utils.sh"
 # -----------------------------------------------------------------------------
 detect_brews() {
   if ! command_exists brew; then
-    log_warn "Homebrew not found — skipping formula detection"
+    log_warn "Homebrew not found — skipping formula detection" >&2
     return
   fi
   brew list --formula 2>/dev/null
@@ -22,7 +22,7 @@ detect_brews() {
 # -----------------------------------------------------------------------------
 detect_casks() {
   if ! command_exists brew; then
-    log_warn "Homebrew not found — skipping cask detection"
+    log_warn "Homebrew not found — skipping cask detection" >&2
     return
   fi
   brew list --cask 2>/dev/null
@@ -30,11 +30,12 @@ detect_casks() {
 
 # -----------------------------------------------------------------------------
 # MAC APP STORE
+# Not yet wired into save.sh — coming in v0.2.0
 # -----------------------------------------------------------------------------
 detect_mas_apps() {
   if ! command_exists mas; then
-    log_dim "mas not installed — App Store apps won't be captured"
-    log_dim "To enable: brew install mas"
+    log_dim "mas not installed — App Store apps won't be captured" >&2
+    log_dim "To enable: brew install mas" >&2
     return
   fi
   mas list 2>/dev/null
@@ -42,8 +43,6 @@ detect_mas_apps() {
 
 # -----------------------------------------------------------------------------
 # MANUAL APPS
-# Everything in /Applications minus obvious system apps
-# Deduplication against brew/mas happens in menu.sh — not here
 # -----------------------------------------------------------------------------
 detect_manual_apps() {
   local system_apps=(
@@ -58,21 +57,20 @@ detect_manual_apps() {
     "python 3.12" "python 3.13" "smart switch"
   )
 
-  /bin/ls -1 /Applications 2>/dev/null |
+  local app lower
+  while IFS= read -r app; do
+    lower=$(echo "$app" | tr '[:upper:]' '[:lower:]')
+    local skip=0
+    for s in "${system_apps[@]}"; do
+      [[ "$lower" == "$s" ]] && skip=1 && break
+    done
+    [[ $skip -eq 1 ]] && continue
+    echo "$app"
+  done < <(/bin/ls -1 /Applications 2>/dev/null |
     sed 's|[/@*]$||' |
     grep '\.app$' |
     sed 's/\.app$//' |
-    sort |
-    while IFS= read -r app; do
-      local lower
-      lower=$(echo "$app" | tr '[:upper:]' '[:lower:]')
-      local skip=0
-      for s in "${system_apps[@]}"; do
-        [[ "$lower" == "$s" ]] && skip=1 && break
-      done
-      [[ $skip -eq 1 ]] && continue
-      echo "$app"
-    done
+    sort)
 }
 
 # -----------------------------------------------------------------------------

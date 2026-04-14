@@ -6,7 +6,6 @@
 
 # -----------------------------------------------------------------------------
 # COLOURS
-# tput reads terminal capabilities — silenced on terminals that don't support it
 # -----------------------------------------------------------------------------
 if tput setaf 1 &>/dev/null; then
   RESET="$(tput sgr0)"
@@ -23,7 +22,6 @@ fi
 
 # -----------------------------------------------------------------------------
 # LOGGING
-# log_warn and log_error write to stderr — everything else to stdout
 # -----------------------------------------------------------------------------
 log_info() {
   printf "${CYAN}•${RESET} %s\n" "$*"
@@ -74,7 +72,6 @@ divider() {
 
 # -----------------------------------------------------------------------------
 # PROMPTS
-# /dev/tty reads from the keyboard directly — safe even when stdin is piped
 # -----------------------------------------------------------------------------
 shelve_ask() {
   local response
@@ -97,19 +94,17 @@ app_installed() {
 
 # -----------------------------------------------------------------------------
 # BREW CHECKS
-# Check directly against Cellar/Caskroom — avoids calling brew list in a loop
 # -----------------------------------------------------------------------------
 brew_package_installed() {
-  [[ -d "$(brew --prefix)/Cellar/${1}" ]]
+  [[ -d "${BREW_PREFIX}/Cellar/${1}" ]]
 }
 
 brew_cask_installed() {
-  [[ -d "$(brew --prefix)/Caskroom/${1}" ]]
+  [[ -d "${BREW_PREFIX}/Caskroom/${1}" ]]
 }
 
 # -----------------------------------------------------------------------------
 # JSON HELPERS
-# Used by save.sh and fresh.sh to build shelve.json
 # -----------------------------------------------------------------------------
 array_to_json() {
   local items=("$@")
@@ -133,8 +128,36 @@ ensure_shelve_dir() {
 }
 
 # -----------------------------------------------------------------------------
+# SAFE REMOVE
+# Guards against empty variables or paths outside ~/.shelve/
+# -----------------------------------------------------------------------------
+safe_remove() {
+  local target="$1"
+  if [[ -z "$target" || "$target" != "${HOME}/.shelve/"* ]]; then
+    log_warn "Refusing to remove unsafe path: $target"
+    return 1
+  fi
+  rm -rf "$target"
+}
+
+# -----------------------------------------------------------------------------
+# DEGIT
+# Removes .git from a directory copy — safe to call even if .git doesn't exist
+# -----------------------------------------------------------------------------
+degit() {
+  local dir="$1"
+  [[ ! -d "${dir}/.git" ]] && return
+  chmod -R u+w "${dir}/.git" 2>/dev/null || true
+  safe_remove "${dir}/.git"
+}
+
+# -----------------------------------------------------------------------------
+# BREW PREFIX CACHE
+# -----------------------------------------------------------------------------
+export BREW_PREFIX="$(brew --prefix 2>/dev/null || echo '')"
+
+# -----------------------------------------------------------------------------
 # GUM WRAPPER
-# gum 0.17.0 conflicts with our BOLD variable — unset it before every call
 # -----------------------------------------------------------------------------
 gum() {
   env -u BOLD command gum "$@"

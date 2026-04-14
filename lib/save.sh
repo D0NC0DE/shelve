@@ -16,8 +16,8 @@ write_config() {
   local manual_json="$3"
   local dotfiles_json="$4"
 
-  local shell macos arch browser terminal editor cli_editor
-  shell=$(basename "$SHELL")
+  local shell_name macos arch browser terminal editor cli_editor
+  shell_name=$(basename "$SHELL")
   macos=$(sw_vers -productVersion 2>/dev/null)
   arch=$(uname -m)
 
@@ -27,8 +27,7 @@ write_config() {
   terminal=$(echo "$roles" | grep "^terminal=" | cut -d= -f2)
   editor=$(echo "$roles" | grep "^editor=" | cut -d= -f2)
   cli_editor=$(echo "$roles" | grep "^cli_editor=" | cut -d= -f2)
-
-  ensure_shelve_dir
+  [[ -z "$cli_editor" ]] && cli_editor="none"
 
   cat >"$SHELVE_CONFIG" <<EOF
 {
@@ -37,7 +36,7 @@ write_config() {
   "system": {
     "macos": "$macos",
     "arch": "$arch",
-    "shell": "$shell"
+    "shell": "$shell_name"
   },
   "roles": {
     "browser": "$browser",
@@ -52,7 +51,6 @@ write_config() {
 }
 EOF
 
-  log_success "Config saved to ${SHELVE_CONFIG}"
 }
 
 # -----------------------------------------------------------------------------
@@ -72,7 +70,12 @@ backup_dotfiles() {
       log_warn "Not found, skipping: $dotfile"
       continue
     fi
-    cp -r "$src" "$dotfiles_dir/"
+    local name
+    name=$(basename "$src")
+    [[ -z "$name" ]] && { log_warn "Skipping invalid path: $src"; continue; }
+    safe_remove "${dotfiles_dir}/${name}"
+    cp -r "$src" "${dotfiles_dir}/"
+    degit "${dotfiles_dir}/${name}"
     log_success "Backed up $dotfile"
   done
 }
@@ -129,5 +132,11 @@ cmd_save() {
   log_success "${#selected_dotfiles[@]} dotfiles saved"
 
   divider
-  log_success "Setup saved. Run 'shelve restore' on your new Mac to restore."
+  printf "  ${CYAN}Config saved to:${RESET} %s\n" "$SHELVE_CONFIG"
+  printf "  ${CYAN}Dotfiles saved to:${RESET} %s\n\n" "${SHELVE_DIR}/dotfiles"
+  printf "  ${DIM}To restore on another Mac:${RESET}\n"
+  printf "  ${DIM}1. Copy ~/.shelve/ to your new Mac${RESET}\n"
+  printf "  ${DIM}2. Run: shelve restore${RESET}\n"
+  divider
+  log_success "All done."
 }
