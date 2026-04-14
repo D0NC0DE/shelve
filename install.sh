@@ -3,6 +3,8 @@
 # install.sh — one-liner bootstrap for shelve
 # Usage:
 #   curl -fsSL https://get.yourdomain.com/shelve -o install.sh && bash install.sh
+# Note: downloaded before running (not piped) so stdin stays available
+# for interactive prompts (Homebrew installer, ask() function)
 # =============================================================================
 
 set -eo pipefail
