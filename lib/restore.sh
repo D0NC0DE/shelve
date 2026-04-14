@@ -7,10 +7,6 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/utils.sh"
 source "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/menu.sh"
 
 # Global arrays — shared between functions
-brews=()
-casks=()
-manual=()
-dotfiles=()
 selected_brews=()
 selected_casks=()
 selected_manual=()
@@ -48,7 +44,7 @@ parse_json_value() {
 
 # -----------------------------------------------------------------------------
 # RUN SELECTIONS
-# Uses global arrays — no passing needed
+# Parses each category inline so JSON parsing overlaps with gum initialising
 # Returns 0 = confirmed, 1 = start over
 # -----------------------------------------------------------------------------
 run_selections() {
@@ -57,48 +53,49 @@ run_selections() {
   selected_manual=()
   selected_dotfiles=()
 
-  if [[ ${#brews[@]} -gt 0 ]]; then
+  local items=()
+
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && items+=("$line")
+  done < <(parse_json_array "brews")
+  if [[ ${#items[@]} -gt 0 ]]; then
     log_step "Homebrew formulae" >&2
-    log_dim "Space to deselect, enter to confirm" >&2
     while IFS= read -r line; do
       [[ -n "$line" ]] && selected_brews+=("$line")
-    done < <(printf '%s\n' "${brews[@]}" |
-      gum choose --no-limit --selected="*" \
-        --header="Select formulae to install:" \
-        --height=20)
+    done < <(menu_select "Select formulae to install:" "${items[@]}")
   fi
 
-  if [[ ${#casks[@]} -gt 0 ]]; then
+  items=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && items+=("$line")
+  done < <(parse_json_array "casks")
+  if [[ ${#items[@]} -gt 0 ]]; then
     log_step "Casks" >&2
-    log_dim "Space to deselect, enter to confirm" >&2
     while IFS= read -r line; do
       [[ -n "$line" ]] && selected_casks+=("$line")
-    done < <(printf '%s\n' "${casks[@]}" |
-      gum choose --no-limit --selected="*" \
-        --header="Select casks to install:" \
-        --height=20)
+    done < <(menu_select "Select casks to install:" "${items[@]}")
   fi
 
-  if [[ ${#manual[@]} -gt 0 ]]; then
+  items=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && items+=("$line")
+  done < <(parse_json_array "manual_apps")
+  if [[ ${#items[@]} -gt 0 ]]; then
     log_step "Manual apps" >&2
-    log_dim "Space to deselect, enter to confirm" >&2
     while IFS= read -r line; do
       [[ -n "$line" ]] && selected_manual+=("$line")
-    done < <(printf '%s\n' "${manual[@]}" |
-      gum choose --no-limit --selected="*" \
-        --header="Select manual apps to note:" \
-        --height=20)
+    done < <(menu_select "Select manual apps to note:" "${items[@]}")
   fi
 
-  if [[ ${#dotfiles[@]} -gt 0 ]]; then
+  items=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && items+=("$line")
+  done < <(parse_json_array "dotfiles")
+  if [[ ${#items[@]} -gt 0 ]]; then
     log_step "Dotfiles" >&2
-    log_dim "Space to deselect, enter to confirm" >&2
     while IFS= read -r line; do
       [[ -n "$line" ]] && selected_dotfiles+=("$line")
-    done < <(printf '%s\n' "${dotfiles[@]}" |
-      gum choose --no-limit --selected="*" \
-        --header="Select dotfiles to restore:" \
-        --height=20)
+    done < <(menu_select "Select dotfiles to restore:" "${items[@]}")
   fi
 
   # Show summary
@@ -107,27 +104,19 @@ run_selections() {
   echo ""
 
   printf "  ${CYAN}Formulae${RESET}    ${#selected_brews[@]} selected\n"
-  for item in "${selected_brews[@]}"; do
-    log_dim "  + $item"
-  done
+  for item in "${selected_brews[@]}"; do log_dim "  + $item"; done
 
   echo ""
   printf "  ${CYAN}Casks${RESET}       ${#selected_casks[@]} selected\n"
-  for item in "${selected_casks[@]}"; do
-    log_dim "  + $item"
-  done
+  for item in "${selected_casks[@]}"; do log_dim "  + $item"; done
 
   echo ""
   printf "  ${CYAN}Manual apps${RESET} ${#selected_manual[@]} selected\n"
-  for item in "${selected_manual[@]}"; do
-    log_dim "  + $item"
-  done
+  for item in "${selected_manual[@]}"; do log_dim "  + $item"; done
 
   echo ""
   printf "  ${CYAN}Dotfiles${RESET}    ${#selected_dotfiles[@]} selected\n"
-  for item in "${selected_dotfiles[@]}"; do
-    log_dim "  + $item"
-  done
+  for item in "${selected_dotfiles[@]}"; do log_dim "  + $item"; done
 
   echo ""
   divider
@@ -159,7 +148,6 @@ install_brews() {
   local failed=()
 
   for pkg in "${selected_brews[@]}"; do
-    # Strip any invisible characters or whitespace that gum may attach
     pkg=$(echo "$pkg" | tr -d '[:space:]')
     [[ -z "$pkg" ]] && continue
 
@@ -169,7 +157,7 @@ install_brews() {
       if gum spin \
         --spinner dot \
         --title "Installing $pkg..." \
-        -- brew install "$pkg" 2>/dev/null; then
+        -- bash -c "brew install '$pkg' &>/dev/null"; then
         log_success "$pkg"
       else
         log_warn "Failed: $pkg"
@@ -197,7 +185,7 @@ install_casks() {
       if gum spin \
         --spinner dot \
         --title "Installing $cask..." \
-        -- brew install --cask "$cask" 2>/dev/null; then
+        -- bash -c "brew install --cask '$cask' &>/dev/null"; then
         log_success "$cask"
       else
         log_warn "Failed: $cask"
@@ -253,6 +241,12 @@ restore_dotfiles() {
     fi
 
     mkdir -p "$(dirname "$target")"
+
+    if [[ -e "$target" ]]; then
+      mv "$target" "${target}.bak"
+      log_dim "Backed up existing $dotfile → ${dotfile}.bak"
+    fi
+
     cp -r "$source" "$target"
     log_success "Restored $dotfile"
   done
@@ -274,7 +268,6 @@ cmd_restore() {
   log_info "Reading config from ${SHELVE_CONFIG}"
   divider
 
-  # Show saved roles
   local browser terminal editor cli_editor
   browser=$(parse_json_value "browser")
   terminal=$(parse_json_value "terminal")
@@ -288,24 +281,6 @@ cmd_restore() {
   log_dim "cli editor: $cli_editor"
   divider
 
-  # Load items from config into global arrays
-  while IFS= read -r line; do
-    [[ -n "$line" ]] && brews+=("$line")
-  done < <(parse_json_array "brews")
-
-  while IFS= read -r line; do
-    [[ -n "$line" ]] && casks+=("$line")
-  done < <(parse_json_array "casks")
-
-  while IFS= read -r line; do
-    [[ -n "$line" ]] && manual+=("$line")
-  done < <(parse_json_array "manual_apps")
-
-  while IFS= read -r line; do
-    [[ -n "$line" ]] && dotfiles+=("$line")
-  done < <(parse_json_array "dotfiles")
-
-  # Selection loop — reruns if user picks "start over"
   while true; do
     log_step "Select what to install"
     log_dim "Everything selected — deselect what you don't want"
@@ -313,7 +288,6 @@ cmd_restore() {
     run_selections && break
   done
 
-  # Install
   install_brews
   install_casks
   show_manual_apps

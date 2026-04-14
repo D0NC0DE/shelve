@@ -189,6 +189,12 @@ Replace the raw GitHub URL with a clean domain.
 - `curl -fsSL https://get.yourdomain.com/shelve -o install.sh && bash install.sh`
 - One redirect rule on an existing domain — no new infrastructure
 
+### Checksum verification
+Let users verify the installer before running it.
+- Publish a SHA256 checksum alongside each release
+- Document the verification step in the README
+- Protects against network interception of the install script
+
 ### README and documentation
 - Full README with animated terminal demo (built with VHS or asciinema)
 - Clear quickstart for all three commands
@@ -213,6 +219,9 @@ Not committed to any version. Good ideas worth tracking.
 | Brew tap support | Save and restore custom Homebrew taps |
 | VS Code extensions | Save and restore editor extensions alongside packages |
 | Shell aliases backup | Capture custom aliases from `.zshrc` as a named category |
+| AI secrets detection | Use an AI model to detect secrets in dotfiles more accurately than pattern matching |
+| AI tool recommendations | Describe your work in plain text and get smart tool preselections in `shelve fresh` |
+| AI diff explanations | `shelve diff` explains why a missing package matters based on your saved config |
 
 ---
 

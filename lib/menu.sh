@@ -15,11 +15,12 @@ menu_select() {
 
   log_dim "Space to deselect, enter to confirm" >&2
 
-  printf '%s\n' "${items[@]}" | gum choose \
+  gum choose \
     --no-limit \
     --selected="*" \
     --header="$header" \
-    --height=20
+    --height=20 \
+    -- "${items[@]}" 
 }
 
 # -----------------------------------------------------------------------------
