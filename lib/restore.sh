@@ -213,7 +213,9 @@ install_casks() {
     fi
   done
 
-  [[ ${#failed[@]} -gt 0 ]] && log_warn "Failed: ${failed[*]}"
+  if [[ ${#failed[@]} -gt 0 ]]; then
+    log_warn "Failed: ${failed[*]}"
+  fi
 }
 
 # -----------------------------------------------------------------------------
