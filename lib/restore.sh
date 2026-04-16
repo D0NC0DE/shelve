@@ -159,7 +159,7 @@ run_selections() {
 # INSTALL BREWS
 # -----------------------------------------------------------------------------
 install_brews() {
-  [[ ${#selected_brews[@]} -eq 0 ]] && return
+  if [[ ${#selected_brews[@]} -eq 0 ]]; then return; fi
 
   log_step "Installing Homebrew formulae"
   local failed=()
@@ -192,7 +192,7 @@ install_brews() {
 # INSTALL CASKS
 # -----------------------------------------------------------------------------
 install_casks() {
-  [[ ${#selected_casks[@]} -eq 0 ]] && return
+  if [[ ${#selected_casks[@]} -eq 0 ]]; then return; fi
 
   log_step "Installing casks"
   local failed=()
@@ -222,7 +222,7 @@ install_casks() {
 # SHOW MANUAL INSTALLS
 # -----------------------------------------------------------------------------
 show_manual_installs() {
-  [[ ${#selected_manual_installs[@]} -eq 0 ]] && return
+  if [[ ${#selected_manual_installs[@]} -eq 0 ]]; then return; fi
 
   log_step "Manual installs — re-install these yourself"
   log_dim "These tools were installed outside Homebrew"
@@ -254,7 +254,7 @@ show_manual_installs() {
 # SHOW MANUAL APPS
 # -----------------------------------------------------------------------------
 show_manual_apps() {
-  [[ ${#selected_manual[@]} -eq 0 ]] && return
+  if [[ ${#selected_manual[@]} -eq 0 ]]; then return; fi
 
   log_step "Manual apps — download these yourself"
   log_dim "Search for each app and download from the official website"
@@ -270,7 +270,7 @@ show_manual_apps() {
 # RESTORE DOTFILES
 # -----------------------------------------------------------------------------
 restore_dotfiles() {
-  [[ ${#selected_dotfiles[@]} -eq 0 ]] && return
+  if [[ ${#selected_dotfiles[@]} -eq 0 ]]; then return; fi
 
   log_step "Restoring dotfiles"
 
@@ -349,8 +349,10 @@ cmd_restore() {
 
   divider
   log_success "Restore complete!"
-  [[ ${#selected_manual_installs[@]} -gt 0 ]] &&
+  if [[ ${#selected_manual_installs[@]} -gt 0 ]]; then
     log_dim "Don't forget to run the manual install commands listed above"
-  [[ ${#selected_manual[@]} -gt 0 ]] &&
+  fi
+  if [[ ${#selected_manual[@]} -gt 0 ]]; then
     log_dim "Don't forget to download the manual apps listed above"
+  fi
 }

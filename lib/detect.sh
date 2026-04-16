@@ -78,9 +78,9 @@ detect_manual_apps() {
 # Tools installed outside Homebrew via curl scripts
 # -----------------------------------------------------------------------------
 detect_manual_installs() {
-  [[ -d "${HOME}/.nvm" ]] && echo "nvm"
+  if [[ -d "${HOME}/.nvm" ]]; then echo "nvm"; fi
   command_exists rustup && echo "rust (rustup)"
-  [[ -d "${HOME}/.oh-my-zsh" ]] && echo "oh-my-zsh"
+  if [[ -d "${HOME}/.oh-my-zsh" ]]; then echo "oh-my-zsh"; fi
 }
 
 # -----------------------------------------------------------------------------

@@ -28,7 +28,7 @@ write_config() {
   terminal=$(echo "$roles" | grep "^terminal=" | cut -d= -f2)
   editor=$(echo "$roles" | grep "^editor=" | cut -d= -f2)
   cli_editor=$(echo "$roles" | grep "^cli_editor=" | cut -d= -f2)
-  [[ -z "$cli_editor" ]] && cli_editor="none"
+  if [[ -z "$cli_editor" ]]; then cli_editor="none"; fi
 
   cat >"$SHELVE_CONFIG" <<EOF
 {
@@ -60,7 +60,7 @@ EOF
 # -----------------------------------------------------------------------------
 backup_dotfiles() {
   local files=("$@")
-  [[ ${#files[@]} -eq 0 ]] && return
+  if [[ ${#files[@]} -eq 0 ]]; then return; fi
 
   local dotfiles_dir="${SHELVE_DIR}/dotfiles"
   mkdir -p "$dotfiles_dir"

@@ -61,6 +61,22 @@ Interactive wizard. Pick your developer type, browser, terminal, editor, languag
 
 ---
 
+## Why not just use Migration Assistant?
+ 
+Migration Assistant clones your entire machine — including years of accumulated cruft, old configs, and apps you forgot you had. Most developers setting up a new Mac want a clean start, not a copy.
+ 
+There are also situations where it simply isn't an option:
+ 
+- Your old Mac was stolen, sold, or wiped before you set up the new one
+- Intel → Apple Silicon migrations are notoriously messy — starting clean is often safer
+- Company-issued Mac where IT hands you a fresh machine
+- You want to share a standard setup with a new hire on your team
+- You're setting up a second Mac alongside your existing one
+ 
+shelve gives you a curated, version-controlled snapshot of exactly what you want to carry forward — interactive checkboxes, nothing forced.
+ 
+---
+
 ## What gets backed up
 
 | Category | What's included |

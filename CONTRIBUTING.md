@@ -171,6 +171,22 @@ set -eo pipefail
 
 Not `-u`. The `-u` flag treats unset variables as errors, which crashes on empty arrays in bash 3.2. Leave it out.
 
+**The `&&` trap under `set -eo pipefail`**
+
+Never use `[[ condition ]] && command` as a standalone statement when the condition can legitimately be false in normal operation. The whole expression exits 1 when the condition is false, and `set -eo pipefail` will kill the script.
+
+```bash
+# ❌ Dangerous — exits 1 when failed is empty, kills the script
+[[ ${#failed[@]} -gt 0 ]] && log_warn "Failed: ${failed[*]}"
+
+# ✅ Safe — if absorbs the exit code, always exits 0
+if [[ ${#failed[@]} -gt 0 ]]; then
+  log_warn "Failed: ${failed[*]}"
+fi
+```
+
+The rule of thumb: if the **false branch is the normal happy path**, use `if`. If the false branch should never happen (a guard that exits or continues), `&&` is fine.
+
 ---
 
 ## Security rules

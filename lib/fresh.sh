@@ -234,7 +234,7 @@ install_editor() {
     if [[ ! -d "${HOME}/.config/nvim" ]]; then
       if gum spin --spinner dot --title "Cloning LazyVim starter..." \
           -- bash -c "git clone https://github.com/LazyVim/starter '${HOME}/.config/nvim' &>/dev/null"; then
-        [[ -d "${HOME}/.config/nvim/.git" ]] && rm -rf "${HOME}/.config/nvim/.git"
+        if [[ -d "${HOME}/.config/nvim/.git" ]]; then rm -rf "${HOME}/.config/nvim/.git"; fi
         log_success "LazyVim starter config installed"
       else
         log_warn "Could not clone LazyVim starter — set it up manually"
@@ -396,7 +396,9 @@ save_fresh_to_json() {
   shell_name=$(basename "$SHELL")
   cli_editor="none"
   command_exists nvim && cli_editor="neovim"
-  command_exists vim  && [[ "$cli_editor" == "none" ]] && cli_editor="vim"
+  if command_exists vim && [[ "$cli_editor" == "none" ]]; then
+    cli_editor="vim"
+  fi
 
   local casks_list=()
   case "$browser" in
@@ -453,11 +455,13 @@ save_fresh_to_json() {
   done
 
   # Add oh-my-zsh to manual_installs if selected
-  [[ "$shell_choice" == "oh-my-zsh" || "$shell_choice" == "Both" ]] &&
+  if [[ "$shell_choice" == "oh-my-zsh" || "$shell_choice" == "Both" ]]; then
     manual_installs_list+=("oh-my-zsh")
-
+  fi
   local browser_role="$browser"
-  [[ "$browser_role" == "Skip" ]] && browser_role="none"
+  if [[ "$browser_role" == "Skip" ]]; then
+    browser_role="none"
+  fi
 
   local brews_json casks_json manual_installs_json
   brews_json=$(array_to_json "${tools[@]}")
@@ -605,25 +609,25 @@ _fresh_run() {
   log_step "Editor";       install_editor "$editor_choice"
   log_step "Shell extras"; install_shell_extras "$shell_choice"
 
-  [[ ${#selected_languages[@]} -gt 0 ]] && {
+  if [[ ${#selected_languages[@]} -gt 0 ]]; then
     log_step "Languages"
     install_languages "${selected_languages[@]}"
-  }
+  fi
 
-  [[ ${#selected_tools[@]} -gt 0 ]] && {
+  if [[ ${#selected_tools[@]} -gt 0 ]]; then
     log_step "CLI tools"
     install_tools "${selected_tools[@]}"
-  }
+  fi
 
-  [[ ${#selected_dbs[@]} -gt 0 ]] && {
+  if [[ ${#selected_dbs[@]} -gt 0 ]]; then
     log_step "Databases"
     install_databases "${selected_dbs[@]}"
-  }
+  fi
 
-  [[ ${#selected_productivity[@]} -gt 0 ]] && {
+  if [[ ${#selected_productivity[@]} -gt 0 ]]; then
     log_step "Productivity"
     install_productivity "${selected_productivity[@]}"
-  }
+  fi
 
   divider
   log_success "All done! Your Mac is set up."
